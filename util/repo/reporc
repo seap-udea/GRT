@@ -1,0 +1,32 @@
+###############################################################
+#This is what you can modify freely
+###############################################################
+#Directories with source files
+SOURCES="tests/"
+
+#Compilation 
+BUILD="make all"
+
+#Small http server
+HTTPSERVER=http.server
+
+#Location of sonar cli binaries
+SONARBIN=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492
+
+###############################################################
+#Modify only if you are not working in Linux
+###############################################################
+#Sonar binary directories
+#If properly installed
+SONARSCANNER=${HOME}/src/sonar-scanner/bin/sonar-scanner
+BUILDWRAPPER=${HOME}/src/build-wrapper/build-wrapper
+
+###############################################################
+#Don't modify if you don't know what you're doing
+###############################################################
+#Directories
+STOREDIR=.store
+
+#Automatically generate by make repo:
+REPO=
+USER=seap-udea

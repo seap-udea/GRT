@@ -1,0 +1,14 @@
+#Pthon binaries. In Linux is preferrable python3, nosetests3
+PYTHON=python3
+NOSETESTS=nosetests3
+
+#Directories
+REPODIR=util/repo
+STOREDIR=.store
+
+#Log files
+LOGFILE=.pack/log
+
+#System
+#SYSTEM=macosx
+SYSTEM=linux

@@ -1,0 +1,28 @@
+cleansonar:
+	@echo "Cleaning sonar files..."
+	@-find . -name ".coverage" -delete
+	@-find . -name ".scannerwork" -type d | xargs rm -fr
+	@-find $(UTIL)/sonar -name "*.bak" -delete
+	@-find $(UTIL)/sonar -name "*.log" -delete
+	@-find $(UTIL)/sonar -name "*.xml" -delete
+	@-find $(UTIL)/sonar -name "*.html" -delete
+	@-find $(UTIL)/sonar -name "python-coverage-html" -type d | xargs rm -fr
+	@-find $(UTIL)/sonar -name "c-coverage-html" -type d | xargs rm -fr
+	@-find $(UTIL)/sonar/build/ -name "*.json" -delete
+	@-find $(UTIL)/sonar/build/ -name "*.log" -delete
+
+build:
+	@echo "Executing build-wrapper..."
+	@bash $(UTIL)/repo/deps.sh build-wrapper
+	@bash $(UTIL)/sonar/build.sh
+
+#!!Prerequisite order is strict!!
+sonar:build test coverage
+	@echo "Executing sonar-scanner..."
+	@bash $(UTIL)/repo/deps.sh sonar-scanner
+	@bash $(UTIL)/sonar/sonar.sh $(OPT)
+
+sonar_install:
+	@echo "Installing sonar binaries..."
+	@bash $(UTIL)/repo/deps.sh unzip
+	@bash $(UTIL)/sonar/install.sh

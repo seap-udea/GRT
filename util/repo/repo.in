@@ -1,0 +1,198 @@
+#####################################################################
+#VARIABLES
+#####################################################################
+REPODIR=util/repo/
+include $(REPODIR)/reporc
+BRANCH=$(shell bash $(REPODIR)/getbranch.sh)
+
+#####################################################################
+#REPO INSTALL
+#####################################################################
+repo:
+	@echo "Creating a new repo..."	
+	@bash $(REPODIR)/create_repo.sh USER=$(USER)
+
+deps_repo:
+	@echo "Checking for dependencies for $(SYSTEM)..."
+	@bash $(PACKDIR)/deps.sh $(REPODIR)/deps_repo_${SYSTEM}.conf
+
+#####################################################################
+#GIT RULES
+#####################################################################
+branch:
+	@echo "We are in branch '$(BRANCH)'"
+
+status:
+	@echo "Git Status..."
+	@-git status
+
+commit:
+	@echo "Commiting..."
+	@-git commit -am "Commit"
+	@-git push origin $(BRANCH)
+
+pull:
+	@echo "Pulling new files..."
+	@-git reset --hard HEAD
+	@-git pull origin $(BRANCH)
+
+#####################################################################
+#TEST COMPILATION RULES
+#####################################################################
+CTXXFLAGS=$(CXXFLAGS) --coverage -fprofile-arcs -g -O0
+LTXXFLAGS=$(LXXFLAGS) -lcppunit --coverage -fprofile-arcs
+
+%.tout_run:
+	@make $(@:_run=)
+	@./$(@:_run=)
+
+%.tout:%.to
+	$(CPP) $^ $(LTXXFLAGS) -o $@
+
+%.to:%.cpp
+	$(CPP) -c $(CTXXFLAGS) $^ -o $@
+
+cleanrepo:
+	@echo "Cleaning repo files..."
+	@-find . -name ".coverage" -delete
+	@-find . -name ".scannerwork" -type d | xargs rm -fr
+	@-find $(REPODIR) -name "*.zip" -type f -delete
+	@-find $(REPODIR) -name "*.log" -delete
+	@-find $(REPODIR)/ -name "*.bak" -delete
+	@-find $(REPODIR)/ -name "*.log" -delete
+	@-find $(REPODIR)/ -name "*.xml" -delete
+	@-find $(REPODIR)/ -name "*.html" -delete
+	@-find $(REPODIR)/ -name "python-coverage-html" -type d | xargs rm -fr
+	@-find $(REPODIR)/ -name "c-coverage-html" -type d | xargs rm -fr
+	@-find $(REPODIR)/build/ -name "*.json" -delete
+	@-find $(REPODIR)/build/ -name "*.log" -delete
+
+test:
+	bash test.sh
+
+#####################################################################
+#SONAR RULES
+#####################################################################
+sonar_install:
+	@echo "Installing repo..."
+	@make unpack
+	@bash $(PACKDIR)/deps.sh $(REPODIR)/deps_repo_${SYSTEM}.conf unzip
+	@bash $(REPODIR)/install_sonar.sh 
+
+build:
+	@echo "Executing build-wrapper..."
+	@bash $(PACKDIR)/deps.sh $(REPODIR)/deps_repo_${SYSTEM}.conf build-wrapper
+	@bash $(REPODIR)/build.sh
+
+coverage:
+	@echo "Executing coverage..."
+	@bash $(PACKDIR)/deps.sh $(REPODIR)/deps_repo_${SYSTEM}.conf coverage
+	@bash $(REPODIR)/c-coverage.sh
+	@bash $(REPODIR)/python-coverage.sh
+
+#!!Prerequisite order is strict!!
+sonar:build test coverage
+	@echo "Executing sonar-scanner..."
+	@bash $(PACKDIR)/deps.sh $(REPODIR)/deps_repo_${SYSTEM}.conf sonar-scanner
+	@bash $(REPODIR)/sonar.sh $(OPT)
+
+#####################################################################
+#FILES
+#####################################################################
+SRCBRANCH=$(shell cat .branch)
+ifeq ($(SRCBRANCH),)
+	SRCBRANCH=master
+endif
+
+files:clean
+	@echo "Generating list of files..."
+	@bash $(REPODIR)/files.sh 
+
+updatefiles:
+	@echo "Getting list of files..."
+	@curl -s -o $(REPODIR)/repofiles.list https:/raw.githubusercontent.com/seap-udea/RepoTemplate/$(SRCBRANCH)/$(REPODIR)/repofiles.list
+
+update:updatefiles
+	@echo "Updating files $(UPDATEFILES)..."
+	@bash $(REPODIR)/update.sh $(FILES)
+
+#####################################################################
+#ONLY FOR REPO TEMPLATE DEVELOPER
+#####################################################################
+HTTPCMD=$(PYTHON) -m $(HTTPSERVER) 9000
+JUPYCMD=jupyter-notebook --no-browser --port=8888
+
+PID=$(shell ps -eaf |grep '$(HTTPCMD)' |grep -v grep |awk '{print $$2}')
+JPID=$(shell ps -eaf |grep '$(JUPYCMD)' |grep -v grep |awk '{print $$2}')
+
+ifeq ($(PID),)
+	KILLHTML=":"
+else
+	KILLHTML=kill -9 $(PID)
+endif
+
+ifeq ($(JPID),)
+	KILLJUPY=":"
+else
+	KILLJUPY=kill -9 $(JPID)
+endif
+
+showhtml:
+	@echo "Web processes:"
+	@echo "Simple http server:"
+	@-ps -eaf |grep '$(HTTPCMD)' |grep -v grep
+	@echo "To kill it: make killhtml"
+	@echo "Jupyter server:"
+	@-jupyter notebook list
+	@echo "To kill it: make killjupyter"
+
+killhtml:
+	@echo "Killing html process..."
+	@echo "	Command: $(KILLHTML)"
+	@$(KILLHTML)
+
+html:killhtml
+	@echo "Launching http server..."
+	@nohup $(HTTPCMD) > $(REPODIR)/http.log &
+	@sleep 1
+	@echo "See http://localhost:9000"
+
+killjupyter:
+	@echo "Killing jupyter instances..."
+	@echo "	Command: $(KILLJUPY)"
+	@$(KILLJUPY)
+
+jupyter:killjupyter
+	@echo "Launching Jupyter..."
+	@nohup $(JUPYCMD) > $(REPODIR)/jupyter.log &
+	@sleep 1
+	@make showhtml
+
+killall:killjupyter killhtml
+
+edit:files
+	@emacs -nw $(shell cat $(REPODIR)/files.list)
+
+pullall:
+	@echo "Pulling new files..."
+	@-git reset --hard HEAD
+	@-git pull --all
+
+pushreporc:
+	@echo "Updating reporc..."
+	@-git update-index --no-assume-unchanged $(REPODIR)/reporc
+	@-make commit
+	@-git update-index --assume-unchanged $(REPODIR)/reporc
+
+pushsonarc:
+	@echo "Updating reporc..."
+	@-git update-index --no-assume-unchanged $(REPODIR)/sonarc
+	@-make commit
+	@-git update-index --assume-unchanged $(REPODIR)/sonarc
+
+pushpackrc:
+	@echo "Updating reporc..."
+	@-git update-index --no-assume-unchanged .pack/packrc
+	@-make commit
+	@-git update-index --assume-unchanged .pack/packrc
+

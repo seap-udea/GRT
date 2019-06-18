@@ -1,0 +1,28 @@
+gcov & lcov:
+===========
+
+(including beautiful html output)
+https://codeflu.blog/2014/12/26/using-gcov-and-lcov-to-generate-beautiful-c-code-coverage-statistics/
+
+https://medium.com/@naveen.maltesh/generating-code-coverage-report-using-gnu-gcov-lcov-ee54a4de3f11
+
+https://gcc.gnu.org/onlinedocs/gcc/Invoking-Gcov.html#Invoking-Gcov
+
+http://cppunit.sourceforge.net/doc/1.8.0/cppunit_cookbook.html#cppunit_cookbook
+
+https://wiki.scorec.rpi.edu/w/images/0/05/GuideToCppUnit.pdf
+
+CPPUnit:
+=======
+
+http://www.yolinux.com/TUTORIALS/CppUnit.html
+
+strings programa.exe |grep gcda
+
+Graphical Coverage Tooles:
+=========================
+
+http://www.semdesigns.com/Products/TestCoverage/CppTestCoverage.html
+https://www.bullseye.com/cgi-bin/download
+
+

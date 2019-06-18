@@ -10,5 +10,5 @@ STOREDIR=.store
 LOGFILE=.pack/log
 
 #System
-#SYSTEM=macosx
-SYSTEM=linux
+SYSTEM=macosx
+#SYSTEM=linux

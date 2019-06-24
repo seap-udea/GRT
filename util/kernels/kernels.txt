@@ -1,0 +1,55 @@
+\begindata
+
+PATH_VALUES = ( 'util/kernels' )
+PATH_SYMBOLS = ( 'PATH' )
+KERNELS_TO_LOAD = (
+                   '$PATH/moon_pa_de421_1900-2050.bpc',
+		   '$PATH/moon_080317.tf',
+                   '$PATH/earth_720101_070426.bpc',
+		   '$PATH/earth_latest_high_prec.bpc',
+		   '$PATH/earth_070425_370426_predict.bpc',
+                   '$PATH/naif0012.tls',
+                   '$PATH/pck00010.tpc',
+                   '$PATH/de430.bsp'
+                   )
+
+\begintext
+
+Time kernel:
+     - naif0012.tls: updated to 2019.
+     Updates: 
+
+Object kernels:
+     - pck00010.tpc
+     Updates: 
+
+Reference frame kernels:
+
+     - moon_pa_de421_1900-2050.bpc: data source for this kernel de421.
+
+     - moon_080317.tf: to use together with previous one (updates:
+       https://naif.jpl.nasa.gov/pub/naif/generic_kernels/fk/satellites/)
+
+     - earth_720101_070426.bpc: past.
+
+     - earth_latest_high_prec.bpc: Range 2000 JAN 01 00:01:04.183 to
+       2019 SEP 10 00:01:09.182 TD.
+
+     - earth_070425_370426_predict.bpc: predicted.
+
+     Updates: https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/
+
+     NOTE: When loading kernels the latest kernel override the
+           previous kernels.  Thus, for instance, when calculating the
+           Earth reference frame transformation in 2000 if the first
+           kernel is earth_720101_070426.bpc and then is followed by
+           earth_latest_high_prec.bpc the transformation will be that
+           of the high precision kernel.  If it is from 1990 it will
+           use the first one.
+
+Ephemeris kernels:
+
+     - de430.bsp: Date range 1549-DEC-21 00:00 to 2650-JAN-25 00:00.
+       Comments: de430_tech-comments.txt.
+
+     Updates: 

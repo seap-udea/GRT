@@ -1,16 +1,15 @@
 \begindata
-
-PATH_VALUES = ( 'util/kernels' )
+PATH_VALUES = ( 'data/' )
 PATH_SYMBOLS = ( 'PATH' )
 KERNELS_TO_LOAD = (
-                   '$PATH/moon_pa_de421_1900-2050.bpc',
-		   '$PATH/moon_080317.tf',
-                   '$PATH/earth_720101_070426.bpc',
-		   '$PATH/earth_latest_high_prec.bpc',
-		   '$PATH/earth_070425_370426_predict.bpc',
                    '$PATH/naif0012.tls',
                    '$PATH/pck00010.tpc',
                    '$PATH/de430.bsp'
+                   '$PATH/earth_720101_070426.bpc',
+		   '$PATH/earth_070425_370426_predict.bpc',
+		   '$PATH/earth_latest_high_prec_20190910.bpc',
+                   '$PATH/moon_pa_de421_1900-2050.bpc',
+		   '$PATH/moon_080317.tf',
                    )
 
 \begintext
@@ -25,17 +24,12 @@ Object kernels:
 
 Reference frame kernels:
 
-     - moon_pa_de421_1900-2050.bpc: data source for this kernel de421.
-
-     - moon_080317.tf: to use together with previous one (updates:
-       https://naif.jpl.nasa.gov/pub/naif/generic_kernels/fk/satellites/)
-
      - earth_720101_070426.bpc: past.
+
+     - earth_070425_370426_predict.bpc: predicted.
 
      - earth_latest_high_prec.bpc: Range 2000 JAN 01 00:01:04.183 to
        2019 SEP 10 00:01:09.182 TD.
-
-     - earth_070425_370426_predict.bpc: predicted.
 
      Updates: https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/
 
@@ -46,6 +40,11 @@ Reference frame kernels:
            earth_latest_high_prec.bpc the transformation will be that
            of the high precision kernel.  If it is from 1990 it will
            use the first one.
+
+     - moon_pa_de421_1900-2050.bpc: data source for this kernel de421.
+
+     - moon_080317.tf: to use together with previous one (updates:
+       https://naif.jpl.nasa.gov/pub/naif/generic_kernels/fk/satellites/)
 
 Ephemeris kernels:
 

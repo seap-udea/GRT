@@ -161,6 +161,7 @@ venv.bak/
 \#*\#
 *~
 *.pyc
+/dist/
 __pycache__
 RepoBasics/
 .scanner*
@@ -174,6 +175,10 @@ coverage-html
 *.out
 *.tout
 Icon*
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+/*.egg
 
 #GRT
 *.bsp

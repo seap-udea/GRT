@@ -182,3 +182,6 @@ Icon*
 
 #GRT
 *.bsp
+
+#Temporal
+/tmp/

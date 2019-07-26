@@ -1,5 +1,5 @@
 \begindata
-PATH_VALUES = ( 'data/' )
+PATH_VALUES = ( '.' )
 PATH_SYMBOLS = ( 'PATH' )
 KERNELS_TO_LOAD = (
                    '$PATH/naif0012.tls',

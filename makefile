@@ -30,7 +30,9 @@ deps:
 	@echo "Checking dependencies for $(SYSTEM)..."
 	@bash $(PACKDIR)/deps.sh $(PACKDIR)/deps_pack_$(SYSTEM).conf 
 
-clean:cleancrap cleanout cleanrepo
+clean:cleancrap
+
+cleanall:cleancrap cleanout cleanrepo
 
 #=========================
 #Clean
@@ -65,6 +67,10 @@ pack:
 unpack:
 	@echo "Unpacking data..."
 	@bash $(PACKDIR)/pack.sh unpack
+
+convert:
+	@echo "Converting iPython Notebooks..."
+	@bash convert.sh dev/*.ipynb
 
 #####################################################################
 #EXTERNAL RULES

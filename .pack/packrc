@@ -12,3 +12,7 @@ LOGFILE=.pack/log
 #System
 SYSTEM=macosx
 #SYSTEM=linux
+
+#Other
+DEVDIR=dev/
+PACKNAME=gravray

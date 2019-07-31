@@ -27,7 +27,6 @@ except:
     ROOTDIR=os.path.abspath('')
 
 TIME=time()
-    
 
 #################################################################################                                                                                           
 #This code is used only for development purposes                                                                                           

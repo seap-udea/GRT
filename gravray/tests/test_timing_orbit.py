@@ -25,11 +25,16 @@ get_ipython().magic('autoreload 2')
 
 Spice.loadKernels()
 
+TIMING=1
+TEST=1
 import unittest
 class Test(unittest.TestCase):
     
     #Orbit
     orbit=KeplerianOrbit(1.0)
+    
+    def test_foo(self):
+        return True
     
     #"""
     def test_Jacobian(self):
@@ -257,45 +262,46 @@ class Test(unittest.TestCase):
     def timing_propagate_ray_moon(self):
         self.ray_crater.updateRay(self.tdb_moon)
         self.ray_crater.propagateRay()
-
+        
 if __name__=='__main__':
     #Testing
     unittest.main(argv=['first-arg-is-ignored'],exit=False)
 
     #"""
-    print("Timing set by elements hyperbola:")
-    get_ipython().magic('timeit -n 100 Test().timing_set_by_elements_hyperbola()')
+    if TIMING:
+        print("Timing set by elements hyperbola:")
+        get_ipython().magic('timeit -n 100 Test().timing_set_by_elements_hyperbola()')
 
-    print("Timing set by elements ellipse:")
-    get_ipython().magic('timeit -n 100 Test().timing_set_by_elements_ellipse()')
+        print("Timing set by elements ellipse:")
+        get_ipython().magic('timeit -n 100 Test().timing_set_by_elements_ellipse()')
 
-    print("Timing set by state hyperbola:")
-    get_ipython().magic('timeit -n 100 Test().timing_set_by_state_hyperbola()')
+        print("Timing set by state hyperbola:")
+        get_ipython().magic('timeit -n 100 Test().timing_set_by_state_hyperbola()')
 
-    print("Timing Jacobian Jck:")
-    t=Test()
-    get_ipython().magic('timeit -n 100 t.orbit.calcJacobians()')
-    
-    print("Timing Determinant of Jacobian:")
-    get_ipython().magic('timeit -n 100 np.linalg.det(t.orbit.Jck)')
+        print("Timing Jacobian Jck:")
+        t=Test()
+        get_ipython().magic('timeit -n 100 t.orbit.calcJacobians()')
 
-    print("Timing update state:")
-    t=Test()
-    get_ipython().magic('timeit -n 1000 t.orbit.updateState(10.0)')
+        print("Timing Determinant of Jacobian:")
+        get_ipython().magic('timeit -n 100 np.linalg.det(t.orbit.Jck)')
 
-    print("Timing Jacobians Ee:")
-    t=Test()
-    t.timing_set_bound_ellipse()
-    get_ipython().magic('timeit -n 100 t.orbit.calcJacobiansMap()')
-    
-    #Timing
-    print("Timing update ray:")
-    get_ipython().magic('timeit -n 100 Test().timing_update_ray()')
-    
-    print("Timing propagate ray earth:")
-    get_ipython().magic('timeit -n 100 Test().timing_propagate_ray_earth()')
-    
-    print("Timing propagate ray moon:")
-    get_ipython().magic('timeit -n 100 Test().timing_propagate_ray_moon()')
-    #"""
+        print("Timing update state:")
+        t=Test()
+        get_ipython().magic('timeit -n 1000 t.orbit.updateState(10.0)')
+
+        print("Timing Jacobians Ee:")
+        t=Test()
+        t.timing_set_bound_ellipse()
+        get_ipython().magic('timeit -n 100 t.orbit.calcJacobiansMap()')
+
+        #Timing
+        print("Timing update ray:")
+        get_ipython().magic('timeit -n 100 Test().timing_update_ray()')
+
+        print("Timing propagate ray earth:")
+        get_ipython().magic('timeit -n 100 Test().timing_propagate_ray_earth()')
+
+        print("Timing propagate ray moon:")
+        get_ipython().magic('timeit -n 100 Test().timing_propagate_ray_moon()')
+        #"""
 

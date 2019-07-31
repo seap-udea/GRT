@@ -18,13 +18,34 @@ if [ "x$1" = "x" ];then
     echo "You must provide at least one .ipynb file"
 fi
 
+function newer()
+{
+    file1=$1;shift
+    file2=$1;shift
+
+    if [ ! -e $file1 ];then
+	echo "$file1 does not exist."
+	echo -1
+	return
+    fi
+
+    if [ ! -e $file1 ];then
+	echo "Target $file2 does not exist, creating."
+	echo 1
+	return 
+    fi
+
+    dif=$(($(date -r $file1 +%s)-$(date -r $file2 +%s)))
+    echo $dif
+}
+
 for notebook in $@
 do
     if ! [[ $notebook == *"$PACKNAME-"* ]];then continue;fi
 
     devfile=$(basename $notebook)
 
-    echo "Analysing file $devfile:"
+    # Parse script name
     IFS="-"
     targetdir="."
     for dir in $devfile
@@ -36,9 +57,14 @@ do
 	fi
     done
     IFS=" "
-    
     filename=$(echo $filename |awk -F'.' '{print $1}')
     target=$targetdir/$filename.py
+
+    # Check if notebook is more recent than target file
+    if [ $(newer $notebook $target) -lt 0 ];then continue;fi
+    echo "Analysing file $devfile:"
+    git add $notebook
+
     echo -e "\tDirectory: $targetdir"
     echo -e "\tFilename: $filename"
     echo -e "\tTarget object: $target"
@@ -52,5 +78,6 @@ do
     else ((nlines--))
     fi
     (cat header.py;head -n $nlines /tmp/convert.py) > $target 
+    git add $target
 done
 echo "Completed."

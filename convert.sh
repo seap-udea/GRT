@@ -37,11 +37,16 @@ function newer()
 
     dif=$(($(date -r $file1 +%s)-$(date -r $file2 +%s)))
     echo $dif
+    return
 }
 
 for notebook in $@
 do
     if ! [[ $notebook == *"$PACKNAME-"* ]];then continue;fi
+    if [ ! -e $notebook ];then 
+	echo "Notebook $notebook does not exist. Skipping."
+	continue
+    fi
 
     devfile=$(basename $notebook)
 
@@ -63,7 +68,7 @@ do
     # Check if notebook is more recent than target file
     if [ $(newer $notebook $target) -lt 0 ];then continue;fi
     echo "Analysing file $devfile:"
-    git add $notebook
+    git add -f $notebook
 
     echo -e "\tDirectory: $targetdir"
     echo -e "\tFilename: $filename"
@@ -78,6 +83,6 @@ do
     else ((nlines--))
     fi
     (cat header.py;head -n $nlines /tmp/convert.py) > $target 
-    git add $target
+    git add -f $target
 done
 echo "Completed."

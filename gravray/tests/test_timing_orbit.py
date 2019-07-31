@@ -32,6 +32,18 @@ class Test(unittest.TestCase):
     orbit=KeplerianOrbit(1.0)
     
     #"""
+    def test_Jacobian(self):
+        self.timing_set_by_elements_ellipse()
+        self.orbit.calcJacobians()
+        self.assertEqual(np.isclose(self.orbit.Jck.flatten(),
+                                    [-0.41654039,-1.23208195,1.07547613,-0.1389311,-0.53730042,-3.08685343,
+                                      0.04274803,-5.63319668,-0.62092643,-1.35375627,-1.7177267,-4.09689136,
+                                      0.38210857,-1.74958408,1.24185287,0.,-0.39354754,0.62484781,
+                                      0.08105459,0.6202556,0.09235913,0.69924506,0.45673547,1.26843361,
+                                      0.10757616,-0.91335224,-0.05332357,-0.52685483,-0.43785039,-0.13017475,
+                                     -0.01640725,-0.99383322,0.10664714,0.,-0.61446971,-1.1635831],
+                                    rtol=1e-5).tolist(),
+                          [True]*36)
     def test_jacobians_Ee(self):
         self.timing_set_bound_ellipse()
         self.orbit.calcJacobiansMap()
@@ -111,19 +123,6 @@ class Test(unittest.TestCase):
                                     rtol=1e-5).tolist(),
                           [True]*6)
 
-    def test_Jacobian(self):
-        self.timing_set_by_elements_ellipse()
-        self.orbit.calcJacobians()
-        self.assertEqual(np.isclose(self.orbit.Jck.flatten(),
-                                    [-0.41654039,-1.23208195,1.07547613,-0.53730042,-0.1389311,-3.08685343,
-                                      0.04274803,-5.63319668,-0.62092643,-1.7177267,-1.35375627,-4.09689136,
-                                      0.38210857,-1.74958408,1.24185287,-0.39354754,0.,0.62484781,
-                                      0.08105459,0.6202556,0.09235913,0.45673547,0.69924506,1.26843361,
-                                      0.10757616,-0.91335224,-0.05332357,-0.43785039,-0.52685483,-0.13017475,
-                                     -0.01640725,-0.99383322,0.10664714,-0.61446971,0.,-1.1635831],
-                                    rtol=1e-5).tolist(),
-                          [True]*36)
-
     def test_derivatives(self):
         self.timing_set_by_elements_ellipse()
         self.orbit.calcDerivatives()
@@ -192,7 +191,12 @@ class Test(unittest.TestCase):
     site=Location(earth,25.0*Angle.Deg,53.0*Angle.Deg,100.0*Const.km)
     ray_site=GrtRay(site,40.0*Angle.Deg,20.0*Angle.Deg,-10.0*Const.km)
     
-    #"""
+    #"""    
+    def test_ray_jacobian_ecliptic(self):
+        self.ray_site.updateRay(self.tdb_arb)
+        self.ray_site.calcJacobiansBody()
+        self.ray_site.calcJacobiansEcliptic()
+    
     def test_ray_jacobian(self):
         self.ray_site.updateRay(self.tdb_arb)
         self.ray_site.calcJacobiansBody()
@@ -207,7 +211,7 @@ class Test(unittest.TestCase):
                         0.00000000e+00,3.69061965e+03,0.00000000e+00,3.63509979e+03,-5.92794777e+03,7.06345341e-01],
                        rtol=1e-5).tolist(),
                        [True]*36)
-    
+
     def test_propagate_moon(self):
         self.timing_propagate_ray_moon()
         E=np.copy(self.ray_crater.terminal.elements)
@@ -256,7 +260,7 @@ class Test(unittest.TestCase):
 
 if __name__=='__main__':
     #Testing
-    #unittest.main(argv=['first-arg-is-ignored'],exit=False)
+    unittest.main(argv=['first-arg-is-ignored'],exit=False)
 
     #"""
     print("Timing set by elements hyperbola:")
@@ -283,10 +287,8 @@ if __name__=='__main__':
     t=Test()
     t.timing_set_bound_ellipse()
     get_ipython().magic('timeit -n 100 t.orbit.calcJacobiansMap()')
-    #"""
     
     #Timing
-    #"""
     print("Timing update ray:")
     get_ipython().magic('timeit -n 100 Test().timing_update_ray()')
     

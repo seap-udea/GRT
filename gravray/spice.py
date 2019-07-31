@@ -161,7 +161,7 @@ class Location(object):
     Define a location on a scenario
     
     Atributtes:
-        scenario: Scenario of the location, Scenario
+        body: Body where the location is, Body class 
         longitud: longitude, float, radians
         latitude: latitude, float, radians
         altitude: elevation over reference ellipsoid, float, m
@@ -194,9 +194,8 @@ class Location(object):
         #Velocity of the surface with respect to the inertial ref. frame of the body
         self.velBody=spy.mxv(self.Tloc2bod,self.velLocal)
     
-    def updateLocation(self,tdb_moon):
-        
-        self.body.updateBody(tdb_moon)
+    def updateLocation(self,tdb):
+        self.body.updateBody(tdb)
         
         #Position of the location in the Ecliptic reference system
         self.posEcl=spy.mxv(self.body.Tbod2ecl,self.posBody)

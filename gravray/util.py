@@ -13,6 +13,9 @@
 
 from gravray import *
 
+get_ipython().magic('load_ext autoreload')
+get_ipython().magic('autoreload 2')
+
 class Util(object):
     
     def fin2Inf(x,scale=1):
@@ -51,6 +54,17 @@ class Util(object):
         isort=np.arange(len(probs))
         n=isort[cond][0] if sum(cond)>0 else isort[0]
         return n
+    
+    def computeJacobian(jfun,x,dx,N=6,**args):
+        J=np.zeros((N,N))
+        for i in range(N):
+            for j in range(N):
+                pre=[x[k] for k in range(j)]
+                pos=[x[k] for k in range(j+1,N)]
+                yi=lambda t:jfun(pre+[t]+pos,**args)[i]
+                dyidxj=(yi(x[j]+dx[j])-yi(x[j]-dx[j]))/(2*dx[j])
+                J[i,j]=dyidxj
+        return J
 
 class Angle(object):
     Deg=np.pi/180

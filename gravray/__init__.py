@@ -15,6 +15,7 @@ import spiceypy as spy
 import numpy as np
 import unittest
 from copy import deepcopy
+from time import time,strftime
 
 #################################################################################                                                                                           
 #Global variables
@@ -25,15 +26,19 @@ try:
 except:
     ROOTDIR=os.path.abspath('')
 
+TIME=time()
+    
+
 #################################################################################                                                                                           
 #This code is used only for development purposes                                                                                           
 #################################################################################
 from IPython.display import HTML, Image
 import IPython.core.autocall as autocall
+from IPython import get_ipython
 
 try:
     cfg=get_ipython().config
-except NameError:
+except AttributeError:
     def Image(url="",filename="",f=""):
         pass
     class get_ipython(object):
@@ -42,9 +47,20 @@ except NameError:
         def magic(self,command):
             pass
 
+def elTime(verbose=1):
+    """
+    Compute the time elapsed since last call.
+    """
+    global TIME
+    t=time()
+    dt=t-TIME
+    if verbose:print("Time elapsed: %g s, %g min, %g h"%(dt,dt/60.0,dt/3600.0))
+    TIME=t
+    return dt
+
 #################################################################################                                                                                           
 #Test
 #################################################################################
 if __name__=="__main__":
-    print(f"Root directory:{_ROOTDIR}")
+    print(f"Root directory:{ROOTDIR}")
 

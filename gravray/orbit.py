@@ -176,7 +176,7 @@ class KeplerianOrbit(object):
         x,y,z,vx,vy,vz=self.state
         r=(x**2+y**2+z**2)**0.5
         nur=nu/r
-
+        
         #Eccentric anomaly as obtained from indirect information
         #From the radial equation: r = a (1-e cos E)
         cosE=(1/e)*(1-r/a)
@@ -219,10 +219,11 @@ class KeplerianOrbit(object):
         JW=np.array([-y,x,0,-vy,vx,0])
 
         #dX/dM
-        JM=ab**1.5*np.array([vx,vy,vz,-x/r**3,-y/r**3,-z/r**3])
+        JM=np.concatenate(((ab**3/mu)**0.5*np.array([vx,vy,vz]),
+                           (mu*ab**3)**0.5*np.array([-x/r**3,-y/r**3,-z/r**3])))
 
         #Jacobian
-        self.Jck=np.array([Ja,Je,Ji,Jw,JW,JM]).transpose()
+        self.Jck=np.array([Ja,Je,Ji,JW,Jw,JM]).transpose()
         self.Jkc=np.linalg.inv(self.Jck)
     
     def calcJacobiansMap(self):
@@ -291,14 +292,12 @@ class GrtRay(object):
     def updateRay(self,tdb):
         self.tdb=tdb
         self.location.updateLocation(tdb)
+        self.body.updateBody(tdb)
         
         #Body-centric state vector in the ecliptic axis
         self.velEcl=spy.mxv(self.body.Tbod2ecl,self.velBody)
         self.stateEcl=np.concatenate((self.location.posEcl,self.velEcl))
-        
-        #Jacobian of the transformation (lon,lat,alt,A,h,vimp)->(x,y,z,x',y',z')
-        #self.Jxgeo2rimp
-    
+
     def calcJacobiansBody(self):
         """
         Compute the Jacobian Matrix of the transformation from 
@@ -315,7 +314,7 @@ class GrtRay(object):
 
         Return:
 
-            Jc2l = [dx/dlon,dx/dlat,dx/dalt,dx/dA,dx/dh,dx/dv,
+            Jcl = [dx/dlon,dx/dlat,dx/dalt,dx/dA,dx/dh,dx/dv,
                     dy/dlon,dy/dlat,dy/dalt,dy/dA,dy/dh,dy/dv,
                     dz/dlon,dz/dlat,dz/dalt,dz/dA,dz/dh,dz/dv,
                     dx'/dlon,dx'/dlat,dx'/dalt,dx'/dA,dx'/dh,dx'/dv,
@@ -386,6 +385,34 @@ class GrtRay(object):
         self.Jcl=np.array([Jlon,Jlat,Jalt,JA,Jh,Jv]).transpose()
         self.Jlc=np.linalg.inv(self.Jcl)
     
+    def calcJacobiansEcliptic(self):
+        """
+        Compute the Jacobian Matrix of the transformation from 
+        local impact conditions (lon,lat,alt,A,h,v) to cartesian state vector (x,y,z,x',y',z') 
+        (in the ecliptic reference frame).
+        """
+        self.calcJacobiansBody()
+        self.Jel=np.zeros_like(self.Jcl)
+        for i in range(6):
+            self.Jel[:3,i]=spy.mxv(self.body.Tbod2ecl,self.Jcl[:3,i])
+            self.Jel[3:,i]=spy.mxv(self.body.Tbod2ecl,self.Jcl[3:,i])
+        self.Jle=np.linalg.inv(self.Jel)
+        
+    def calcJacobianDeterminant(self):
+        #Jxi := dXgeo/dRimp
+        self.updateRay(self.tdb)
+        self.calcJacobiansEcliptic()
+        #Jhx := dehel/dXSoI
+        hel_aelements=self.conics[2]
+        hel_mu=hel_aelements[-2]
+        hel_elements=np.array(hel_aelements[:6])
+        hel=KeplerianOrbit(hel_mu)
+        hel.setElements(hel_elements,0)
+        hel.calcJacobians()
+        #|Jhi| := |Jhx| |Jxi|
+        detJ=np.linalg.det(hel.Jkc)*np.linalg.det(self.Jcl)
+        return detJ
+
     def propagateRay(self):
         
         state=np.zeros(6)
@@ -405,7 +432,7 @@ class GrtRay(object):
             q,e,i,Omega,omega,Mo,et,mu=spy.oscelt(state,et,body.mu)
             a=q/(1-e)
             n=np.sqrt(body.mu/np.abs(a)**3)
-            self.conics+=[[q,e,i,Omega,omega,Mo,body.mu]]
+            self.conics+=[[q,e,i,Omega,omega,Mo,body.mu,et]]
             
             #hill
             etp=et-Mo/n
@@ -419,15 +446,14 @@ class GrtRay(object):
 
             #Heliocentric conic:
             hillstate=spy.conics([q,e,i,Omega,omega,Mo,et,body.mu],etp-deltat)
-            self.conics+=[[q,e,i,Omega,omega,-Md,body.mu]]
+            self.conics+=[[q,e,i,Omega,omega,-Md,body.mu,etp-deltat]]
             
             #Next conic
             et=etp-deltat
             state=hillstate+body.stateHelio
-
             body=self.masters[body.master]
         
         self.terminal=KeplerianOrbit(Spice.Mu["SSB"])
         self.terminal.setState(state,et)
-        self.conics+=[list(self.terminal.elements)+[Spice.Mu["SSB"]]]
+        self.conics+=[list(self.terminal.elements)+[Spice.Mu["SSB"]]+[et]]
 

@@ -72,6 +72,10 @@ convert:
 	@echo "Converting iPython Notebooks..."
 	@bash convert.sh dev/*.ipynb
 
+localinstall:
+	@echo "Installing locally..."
+	@pip install -e .
+
 #####################################################################
 #EXTERNAL RULES
 #####################################################################

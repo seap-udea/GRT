@@ -83,10 +83,10 @@ rayProcessingMulti(initials)
 # ## Massive input data
 
 #Numbers
-Ntimes=5
+Ntimes=10
 Nsites=10
-Npoints=5
-Nvels=5
+Npoints=10
+Nvels=10
 
 #Times
 print("Preparing times...")
@@ -155,12 +155,22 @@ def joinResults(raydfs):
     global allraydfs
     allraydfs=pd.concat(((allraydfs,)+tuple(raydfs)))
 
+elTime(0)
+for initials in cinitials:
+    p=mp.Process(target=rayProcessingMulti,args=(initials,))
+    p.start()
+p.join()
+elTime()
+
+"""
 pool=mp.Pool(NP)
 elTime(0)
 R=[pool.apply_async(rayProcessingMulti,args=(initials,),callback=joinResults) for initials in cinitials]
 pool.close()
 pool.join()
 elTime()
+"""
+1
 
 print("Number of results:",len(allraydfs))
 

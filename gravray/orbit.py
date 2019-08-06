@@ -411,7 +411,7 @@ class GrtRay(object):
             #Escape state
             q,e,i,Omega,omega,M,et,mu=spy.oscelt(state,et,body.mu)
             if e<1:
-                raise AssertionError(f"The object has collided against {body.id}")        
+                raise AssertionError(f"The object has collided against {body.id} with e={e} (Rimp = {self.Rimp}) ")        
             orbit=KeplerianOrbit(body.mu)
             orbit.setElements([q,e,i,Omega,omega,M],et)
             Md,deltat,state=orbit.calcStateByDistance(body.rhill,direction=direction)
@@ -466,12 +466,18 @@ class GrtRay(object):
 
         #Extract info
         Rimp=self.Rimp*np.array([Angle.Rad,Angle.Rad,1,Angle.Rad,Angle.Rad,1])
-        stateimp=self.states[0]
-        et=stateimp[0]
-        ximp=self.stateHelio
-        xhel=self.states[-1][3]
-        elements=Util.transformElements(self.terminal.elements,[1/Const.au,Angle.Rad])
-        celements=np.array([self.terminal.celements[0]/Const.au,self.terminal.secondary[0]])
+        
+        try:
+            stateimp=self.states[0]
+            et=stateimp[0]
+            ximp=self.stateHelio
+            xhel=self.states[-1][3]
+            elements=Util.transformElements(self.terminal.elements,[1/Const.au,Angle.Rad])
+            celements=np.array([self.terminal.celements[0]/Const.au,self.terminal.secondary[0]])
+        except:
+            et=self.tdb
+            xhel=ximp=stateimp=elements=np.zeros(6)
+            celements=np.zeros(2)
 
         #Pack
         raydf=pd.DataFrame([np.concatenate(([et],Rimp,ximp,xhel,elements,celements))],columns=columns)

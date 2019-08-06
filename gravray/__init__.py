@@ -129,6 +129,7 @@ def elTime(verbose=1,start=False):
     DTIME=dt
     DUTIME=[dtu,unit]
     TIME=time()
+    return dt,[dtu,unit] 
     
 def timeIt(expr,scope=globals(),n=10):
     """

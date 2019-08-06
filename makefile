@@ -8,7 +8,7 @@ CPP=g++
 CXXFLAGS=-I. -std=c++11 
 LXXFLAGS=-lm 
 
-DEVFILES=$(shell ls dev/*.ipynb)
+DEVFILES=$(shell ls dev/gravray-*.ipynb)
 
 #####################################################################
 #COMPILATION RULES

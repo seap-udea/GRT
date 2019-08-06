@@ -176,7 +176,7 @@ class Sample(object):
             theta=np.arccos(cos_theta)
             sin_theta = np.sqrt(1.0 - cos_theta*cos_theta)
             self.ss[j,:] = np.array([cos_phi * sin_theta, sin_phi * sin_theta, cos_theta])
-            self.pp[j,:] = np.array([1,theta,np.mod(phi,2*np.pi)])
+            self.pp[j,:] = np.array([1,np.mod(phi,2*np.pi),np.pi/2-theta])
             j += 1
 
     def genUnitSphere(self,perturbation=1):
@@ -206,7 +206,7 @@ class Sample(object):
             sin_theta = np.sqrt(1.0 - cos_theta*cos_theta)
             theta=np.arccos(cos_theta)            
             self.ss[j,:] = np.array([cos_phi * sin_theta, sin_phi * sin_theta, cos_theta])
-            self.pp[j,:] = np.array([1,theta,np.mod(phi,2*np.pi)])
+            self.pp[j,:] = np.array([1,np.mod(phi,2*np.pi),np.pi/2-theta])
             j += 1
 
     def genCosineWeightedUnitHemisphere(self,perturbation=1):
@@ -236,7 +236,7 @@ class Sample(object):
             sin_phi = np.sin(phi)
             theta=np.arccos(cos_theta)                        
             self.ss[j,:] = np.array([cos_phi * sin_theta, sin_phi * sin_theta, cos_theta])
-            self.pp[j,:] = np.array([1,theta,np.mod(phi,2*np.pi)])
+            self.pp[j,:] = np.array([1,np.mod(phi,2*np.pi),np.pi/2-theta])
             j += 1
     
     # Plot methods

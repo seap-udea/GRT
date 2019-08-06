@@ -22,15 +22,12 @@ function newer()
 {
     file1=$1;shift
     file2=$1;shift
-
     if [ ! -e $file1 ];then
-	echo "$file1 does not exist."
 	echo -1
 	return
     fi
 
-    if [ ! -e $file1 ];then
-	echo "Target $file2 does not exist, creating."
+    if [ ! -e $file2 ];then
 	echo 1
 	return 
     fi
@@ -40,15 +37,36 @@ function newer()
     return
 }
 
+function convert()
+{
+    notebook=$1;shift
+    target=$1;shift
+    
+    echo -e "\tConverting from ipynb $notebook to python $target..."
+    jupyter nbconvert --to python $notebook --stdout 2> /dev/null | grep -v "# In" | cat -s > /tmp/convert.py 
+
+    echo -e "\tTriming..."
+    nlines=$(cat -n /tmp/convert.py | grep -e "--End--" | cut -f 1 )
+    if [ "x$nlines" = "x" ];then nlines=$(cat /tmp/convert.py|wc -l)
+    else ((nlines--))
+    fi
+
+    echo -e "\tProcessing magic commands..."
+    sed -ie "s/get_ipython().magic('timeit\(.*\))$/get_ipython().magic('timeit\1,scope=globals())/" /tmp/convert.py
+
+    echo -e "\tAdding header..."
+    (cat header.py;head -n $nlines /tmp/convert.py) > $target 
+}
+
 for notebook in $@
 do
-    if ! [[ $notebook == *"$PACKNAME-"* ]];then continue;fi
     if [ ! -e $notebook ];then 
 	echo "Notebook $notebook does not exist. Skipping."
 	continue
     fi
 
     devfile=$(basename $notebook)
+    devdir=$(dirname $notebook)
 
     # Parse script name
     IFS="-"
@@ -63,33 +81,31 @@ do
     done
     IFS=" "
     filename=$(echo $filename |awk -F'.' '{print $1}')
-    target=$targetdir/$filename.py
+
+    if ! [[ $notebook == *"$PACKNAME-"* ]]
+    then 
+	target=$devdir/$filename.py
+    else
+	target=$targetdir/$filename.py
+    fi
 
     # Check if notebook is more recent than target file
     if [ $1 != "force" ];then 
 	if [ $(newer $notebook $target) -lt 0 ];then continue;fi
     fi
+
     echo "Analysing file $devfile:"
     git add -f $notebook
 
     echo -e "\tDirectory: $targetdir"
     echo -e "\tFilename: $filename"
     echo -e "\tTarget object: $target"
-    
-    echo -e "\tConverting from ipynb $notebook to python $target..."
-    jupyter nbconvert --to python $notebook --stdout 2> /dev/null | grep -v "# In" | cat -s > /tmp/convert.py 
 
-    echo -e "\tTriming..."
-    nlines=$(cat -n /tmp/convert.py | grep -e "--End--" | cut -f 1 )
-    if [ "x$nlines" = "x" ];then nlines=$(cat /tmp/convert.py|wc -l)
-    else ((nlines--))
+    convert $notebook $target
+
+    if [[ $notebook == *"$PACKNAME-"* ]]
+    then
+	git add -f $target
     fi
-
-    echo -e "\tProcessing magic commands..."
-    sed -ie "s/get_ipython().magic('timeit\(.*\))$/get_ipython().magic('timeit\1,scope=globals())/" /tmp/convert.py
-
-    echo -e "\tAadding header..."
-    (cat header.py;head -n $nlines /tmp/convert.py) > $target 
-    git add -f $target
 done
 echo "Completed."

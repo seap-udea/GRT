@@ -186,6 +186,9 @@ def errorMsg(error,msg):
     Return: None.
     """
     error.args=(error.args if error.args else tuple())+(msg,)
+    
+def stop():
+    raise AssertionError("Stop")
 
 #################################################################################
 #Program test

@@ -364,6 +364,7 @@ class GrtRay(object):
         self.posEcl=np.copy(self.location.posEcl)
         self.velEcl=spy.mxv(self.body.Tbod2ecl,self.velBody)
         self.stateEcl=np.concatenate((self.posEcl,self.velEcl))
+        self.stateHelio=self.stateEcl+self.body.stateHelio
 
     def propagateRay(self,tdb):
         """
@@ -384,7 +385,7 @@ class GrtRay(object):
         #Store final state and orbital elements
         self.terminal=KeplerianOrbit(Spice.Mu["SSB"])
         self.terminal.setState(state,et)
-        self.states+=[(et,Spice.Mu["SSB"],self.terminal,state,f"Final escape")]
+        self.states+=[(et,Spice.Mu["SSB"],self.terminal,state,None,None,f"Final escape")]
     
     def propagateEscapeState(self,state,et=0,direction=1):
         """
@@ -403,7 +404,7 @@ class GrtRay(object):
         #Set initial orbit
         body=self.body
         helio=self.body.stateHelio
-        state=state+helio
+        statehelio=state=state+helio
         while body.master is not None:
             #State with respect to body
             state-=helio
@@ -442,7 +443,7 @@ class GrtRay(object):
         detJhx=np.linalg.det(Jhx)
         
         #Jeh := dehel/dXhel
-        hel_et,hel_mu,hel_orbit,hel_state,hel_name=self.states[-1]
+        hel_et,hel_mu,hel_orbit,hel_state,hel_helio,hel_statehelio,hel_name=self.states[-1]
         Jhe=Jacobians.calcKeplerianJacobians(hel_mu,hel_orbit.celements,hel_orbit.state)
         Jeh=np.linalg.inv(Jhe)
         detJeh=np.linalg.det(Jeh)
@@ -451,4 +452,28 @@ class GrtRay(object):
         detJei=detJeh*detJhx*detJxi
         
         return detJei
+    
+    def packRay(self):
+        import pandas as pd
+        
+        #Ray dataframe columns
+        columns=["et","lon","lat","alt","A","h","v",
+                 "ximp","yimp","zimp","vximp","vyimp","vzimp",
+                 "xhel","yhel","zhel","vxhel","vyhel","vzhel",
+                 "q","e","i","W","w","M",
+                 "a","n"
+                ]
+
+        #Extract info
+        Rimp=self.Rimp*np.array([Angle.Rad,Angle.Rad,1,Angle.Rad,Angle.Rad,1])
+        stateimp=self.states[0]
+        et=stateimp[0]
+        ximp=self.stateHelio
+        xhel=self.states[-1][3]
+        elements=Util.transformElements(self.terminal.elements,[1/Const.au,Angle.Rad])
+        celements=np.array([self.terminal.celements[0]/Const.au,self.terminal.secondary[0]])
+
+        #Pack
+        raydf=pd.DataFrame([np.concatenate(([et],Rimp,ximp,xhel,elements,celements))],columns=columns)
+        return raydf
 

@@ -154,7 +154,7 @@ print(f"Estimated time per chunk (estimated parallel): {tchunku[0]} {tchunku[1]}
 allrays=pd.DataFrame()
 pool=mp.Pool(NP)
 elTime(0)
-[pool.apply_async(rayProcessingMulti,args=(initials,),callback=joinResults) for initials in cinitials]
+[pool.apply_async(rayProcessingMulti,args=(inis,),callback=joinResults) for inis in cinitials]
 pool.close()
 pool.join()
 elTime()

@@ -105,7 +105,24 @@ class Test(unittest.TestCase):
         M=20.0
         self.orbit.setElements([q,e,i*Angle.Deg,W*Angle.Deg,w*Angle.Deg,M*Angle.Deg],0.0)
 
-    #""" START COMMENT
+    def test_collision(self):
+        t=414170434.0 
+        lon=204.014122*Angle.Deg
+        lat=-30.0*Angle.Deg
+        H=23300.0
+        A=227.241656*Angle.Deg
+        h=48.590378*Angle.Deg
+        v=11200.0
+        site=Location(self.earth,lon,lat,H)
+        ray=GrtRay(site,A,h,v)
+        ray.updateRay(t)
+        try:
+            ray.propagateRay(t)
+        except AssertionError as e:
+            return True
+        raise AssertionError("No error control")
+        
+    """ START COMMENT
     def test_update_by_time(self):
         self.ray_chely.propagateRay(self.tdb_chely)
         t=self.ray_chely.states[0][0]

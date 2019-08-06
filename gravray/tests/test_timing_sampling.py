@@ -58,7 +58,7 @@ class Test(unittest.TestCase):
         self.timing_unit_hemisphere()
         suma=0
         for i,p in enumerate(self.s3d.pp):
-            r=np.array([np.sin(p[1])*np.cos(p[2]),np.sin(p[1])*np.sin(p[2]),np.cos(p[1])])
+            r=np.array([np.cos(p[2])*np.cos(p[1]),np.cos(p[2])*np.sin(p[1]),np.sin(p[2])])
             suma+=np.linalg.norm(r-self.s3d.ss[i])
         self.assertAlmostEqual(suma,0,5)   
     #""" 

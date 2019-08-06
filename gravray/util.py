@@ -152,14 +152,13 @@ class Util(object):
             chunks: iterator of the chunks corresponding to mylist. 
         
         Examples:
-            [sublist for sublist in Util.chunkList([1,2.3,"hola",np.int,3,4,5],3)]
-            
-            produce
+            Command:
+                [sublist for sublist in Util.chunkList([1,2.3,"hola",np.int,3,4,5],3)]
+            produces:
+                [[1, 2.3, 'hola'], [int, 3, 4], [5]]
     
         """
         for i in range(0,len(mylist),chunksize):yield mylist[i:i+chunksize]
-
-[sublist for sublist in Util.chunkList([1,2.3,"hola",np.int,3,4,5],3)]
 
 #################################################################################
 #CLASS JACOBIANS

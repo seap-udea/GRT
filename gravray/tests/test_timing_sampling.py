@@ -11,8 +11,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# # Test of GravRay Sampling
+
 from gravray import *
 from gravray.sampling import *
+
+get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
 get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
@@ -21,6 +25,9 @@ get_ipython().magic('matplotlib nbagg')
 # # Test Sampling Class
 # 
 # Test suite of the Sampling submodule of GravRay.
+
+TIMING=1
+TEST=1
 
 #Unitary test
 import unittest
@@ -74,20 +81,19 @@ class Test(unittest.TestCase):
 
 if __name__=='__main__':
     #Testing
-    unittest.main(argv=['first-arg-is-ignored'],exit=False)
+    if TEST:unittest.main(argv=['first-arg-is-ignored'],exit=False)
     
-    #Timing
-    #"""
-    print("Timing unit circle:")
-    get_ipython().magic('timeit -n 10 Test().timing_unit_circle()')
-    
-    print("Timing unit hemisphere:")
-    get_ipython().magic('timeit -n 10 Test().timing_unit_hemisphere()')
+    if TIMING:
+        #Timing
+        print("Timing unit circle:")
+        get_ipython().magic('timeit -n 10 Test().timing_unit_circle()',scope=globals())
 
-    print("Timing unit hemisphere (cosine weighted):")
-    get_ipython().magic('timeit -n 10 Test().timing_unit_cosine()')
+        print("Timing unit hemisphere:")
+        get_ipython().magic('timeit -n 10 Test().timing_unit_hemisphere()',scope=globals())
 
-    print("Timing unit sphere:")
-    get_ipython().magic('timeit -n 10 Test().timing_unit_sphere()')
-    #"""
+        print("Timing unit hemisphere (cosine weighted):")
+        get_ipython().magic('timeit -n 10 Test().timing_unit_cosine()',scope=globals())
+
+        print("Timing unit sphere:")
+        get_ipython().magic('timeit -n 10 Test().timing_unit_sphere()',scope=globals())
 

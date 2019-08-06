@@ -66,7 +66,9 @@ do
     target=$targetdir/$filename.py
 
     # Check if notebook is more recent than target file
-    if [ $(newer $notebook $target) -lt 0 ];then continue;fi
+    if [ $1 != "force" ];then 
+	if [ $(newer $notebook $target) -lt 0 ];then continue;fi
+    fi
     echo "Analysing file $devfile:"
     git add -f $notebook
 
@@ -77,11 +79,16 @@ do
     echo -e "\tConverting from ipynb $notebook to python $target..."
     jupyter nbconvert --to python $notebook --stdout 2> /dev/null | grep -v "# In" | cat -s > /tmp/convert.py 
 
-    echo -e "\tTriming and adding header..."
+    echo -e "\tTriming..."
     nlines=$(cat -n /tmp/convert.py | grep -e "--End--" | cut -f 1 )
     if [ "x$nlines" = "x" ];then nlines=$(cat /tmp/convert.py|wc -l)
     else ((nlines--))
     fi
+
+    echo -e "\tProcessing magic commands..."
+    sed -ie "s/get_ipython().magic('timeit\(.*\))$/get_ipython().magic('timeit\1,scope=globals())/" /tmp/convert.py
+
+    echo -e "\tAadding header..."
     (cat header.py;head -n $nlines /tmp/convert.py) > $target 
     git add -f $target
 done

@@ -8,7 +8,7 @@ CPP=g++
 CXXFLAGS=-I. -std=c++11 
 LXXFLAGS=-lm 
 
-ALLDEV=$(shell ls dev/*.ipynb)
+DEVFILES=$(shell ls dev/*.ipynb)
 
 #####################################################################
 #COMPILATION RULES
@@ -72,7 +72,7 @@ unpack:
 
 convert:
 	@echo "Converting iPython Notebooks..."
-	@bash convert.sh $(ALLDEV)
+	@bash convert.sh $(DEVFILES)
 
 localinstall:
 	@echo "Installing locally..."

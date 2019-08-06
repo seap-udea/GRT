@@ -11,9 +11,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# # Test of GravRay SPICE
+
 from gravray import *
 from gravray.util import *
 from gravray.spice import *
+
+get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
 get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
@@ -24,48 +28,92 @@ get_ipython().magic('autoreload 2')
 
 Spice.loadKernels()
 
+TIMING=0
+TEST=1
+
+import unittest
 class Test(unittest.TestCase):
 
-    #"""
-    def test_load_kernels(self):
-        Spice.loadKernels()
+    #Objects
+    earth=Body("EARTH")
+    moon=Body("MOON")
 
-    def test_shape(self):
-        Spice.calcShape("EARTH")
+    #Moon impact
+    tdb_moon=spy.str2et("2000 JAN 02 11:58:56 UTC")
+    crater=Location(moon,45.6452*Angle.Deg,41.1274*Angle.Deg,10.0*Const.km)
+
+    #Earth impact
+    tdb_earth=spy.str2et("2000 JAN 01 12:00:00 UTC")
+    impact=Location(earth,0*Angle.Deg,0*Angle.Deg,0*Const.km)
+    
+    #Chelyabinsk impact
+    tdb_chely=spy.str2et("02/15/2013 3:20:34 UTC")
+    chely=Location(earth,61.1*Angle.Deg,54.8*Angle.Deg,23.3*Const.km)
+    
+    def timing_load_kernels(self):
+        Spice.loadKernels()
+        
+    def timing_update_earth(self):
+        Spice.loadKernels()
+        tdb=Spice.str2t("2000 JAN 01 12:00:00")
+        self.earth.updateBody(tdb)
+
+    def timing_update_moon(self):
+        Spice.loadKernels()
+        tdb=Spice.str2t("2000 JAN 01 12:00:00")
+        self.moon.updateBody(tdb)
+    
+    def timing_update(self):
+        self.crater.updateLocation(self.tdb_moon)
+        
+    def test_string_tdb(self):
+        self.assertAlmostEqual(Spice.str2t("2000 JAN 01 12:00:00"),0.0,7)
+
+    #"""COMMENT START
+    def test_rhill(self):
+        Spice.calcHillRadius("EARTH")
+        self.assertEqual(np.isclose([Spice.RH["EARTH"]],[1496558526],rtol=1e-5).tolist(),[True])
+        Spice.calcHillRadius("MOON")
+        self.assertEqual(np.isclose([Spice.RH["MOON"]],[61620107],rtol=1e-5).tolist(),[True])
+        Spice.calcHillRadius("SUN")
+        self.assertEqual(Spice.RH["SUN"],0)
+        try:
+            Spice.calcHillRadius("JUPITER")
+        except:
+            return True
+        raise AssertionError("Object not included is not checked")
+
+    def test_shapes(self):
+        bodyid="EARTH"
+        Spice.calcShape(bodyid)
         self.assertEqual(np.isclose([Spice.Ra["EARTH"],Spice.f["EARTH"]],
                                     [6378.1366e3,0.0033528131084554717],
                                     rtol=1e-5).tolist(),
                           [True,True])
-        
-    def test_string_tdb(self):
-        self.assertAlmostEqual(Spice.str2t("2000 JAN 01 12:00:00"),0.0,7)
-        
-    def test_right_kernels(self):
-        pass
     
-    def timing_load_kernels(self):
-        Spice.loadKernels()
-    #"""
-    
-    earth=Body("EARTH")
-    moon=Body("MOON")
+    def test_body_noexists(self):
+        try:
+            Body("JORGEZULUAGA")
+        except:
+            return True
+        raise AssertionError("Object not included is not checked")
 
-    #"""
-    def test_body_rhill(self):
-        self.timing_update_earth()
-        self.assertEqual(np.isclose([self.earth.rhill],[1496558526],rtol=1e-5).tolist(),[True])
-
-    def test_moon_rhill(self):
-        self.timing_update_moon()        
-        self.assertEqual(np.isclose([self.moon.rhill],[61460054],rtol=1e-5).tolist(),[True])
-
-    def test_body_shape(self):
-        Spice.calcShape("EARTH")
-        self.assertEqual(np.isclose([self.earth.Ra,self.earth.f],
-                                    [6378.1366e3,0.0033528131084554717],
+    def test_earth_properties(self):
+        self.assertEqual(np.isclose([self.earth.mu,
+                                     self.earth.Ra,
+                                     self.earth.f,
+                                     self.earth.rhill,
+                                     self.earth.Prot
+                                    ],
+                                    [398600.436233*Const.km**3,
+                                     6378.1366e3,
+                                     0.0033528131084554717,
+                                     1496558526,
+                                     1*Const.Day
+                                    ],
                                     rtol=1e-5).tolist(),
-                          [True,True])
-            
+                          [True]*5)
+
     def test_body_state(self):
         self.timing_update_earth()
         self.assertEqual(np.isclose(self.earth.stateHelio,
@@ -96,40 +144,14 @@ class Test(unittest.TestCase):
                                      0.02733653,-0.00187423,0.99962453],
                                     rtol=1e-5).tolist(),
                           [True]*9)
-        
-    def timing_update_earth(self):
-        Spice.loadKernels()
-        tdb=Spice.str2t("2000 JAN 01 12:00:00")
-        self.earth.updateBody(tdb)
 
-    def timing_update_moon(self):
-        Spice.loadKernels()
-        tdb=Spice.str2t("2000 JAN 01 12:00:00")
-        self.moon.updateBody(tdb)
-        
-    #Objects
-    moon=Body("MOON")
-    earth=Body("EARTH")
-
-    #Moon impact
-    tdb_moon=spy.str2et("2000 JAN 02 11:58:56 UTC")
-    crater=Location(moon,45.6452*Angle.Deg,41.1274*Angle.Deg,10.0*Const.km)
-
-    #Earth impact
-    tdb_earth=spy.str2et("2000 JAN 01 12:00:00 UTC")
-    impact=Location(earth,0*Angle.Deg,0*Angle.Deg,0*Const.km)
-    
-    #Chelyabinsk impact
-    tdb_chely=spy.str2et("02/15/2013 3:20:34 UTC")
-    chely=Location(earth,61.1*Angle.Deg,54.8*Angle.Deg,23.3*Const.km)
-    
     def test_vbod2loc(self):
         #These are the components of the Chelyabinsk-impactor velocity as reported by CNEOS
         vBod=np.array([12.8,-13.3,-2.4])
         A,h,vimp=self.chely.vbod2loc(-vBod)
         self.assertAlmostEqual(A*Angle.Rad,99.8961127649985,5)
         self.assertAlmostEqual(h*Angle.Rad,15.92414245029081,5)
-        
+
     def test_loc2vbod(self):
         #These is the radiant and speed (18.6 km/s) of the chelyabinsk impact 
         vBod=self.chely.loc2vbod(101.1*Angle.Deg,+15.9*Angle.Deg,-18.6)
@@ -247,27 +269,26 @@ class Test(unittest.TestCase):
                                     [55.1580499,-5.0588748],
                                     atol=1e-2).tolist(),
                          [True]*2)
-    
-    def timing_update(self):
-        self.crater.updateLocation(self.tdb_moon)
+        
+    #"""
+    #END COMMENT
 
 if __name__=='__main__':
     #Testing
-    unittest.main(argv=['first-arg-is-ignored'],exit=False)
+    if TEST:unittest.main(argv=['first-arg-is-ignored'],exit=False)
     
-    #"""
-    #Timing
-    print("Timing loadKernels:")
-    get_ipython().magic('timeit -n 10 Test().timing_load_kernels()')
-    #"""
-    
-    #Timing
-    print("Timing update body:")
-    t=Test()
-    t.timing_update_earth()
-    get_ipython().magic('timeit -n 100 t.earth.updateBody(0)')
-    
-    #Timing
-    print("Timing update location:")
-    get_ipython().magic('timeit -n 100 Test().timing_update()')
+    if TIMING:
+        #Timing
+        print("Timing loadKernels:")
+        get_ipython().magic('timeit -n 10 Test().timing_load_kernels()',scope=globals())
+
+        #Timing
+        print("Timing update body:")
+        t=Test()
+        t.timing_update_earth()
+        get_ipython().magic('timeit -n 100 t.earth.updateBody(0)',scope=globals())
+
+        #Timing
+        print("Timing update location:")
+        get_ipython().magic('timeit -n 100 Test().timing_update()',scope=globals())
 

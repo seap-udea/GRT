@@ -29,16 +29,12 @@ from itertools import product as cartesian
 def chunks(l, n):
     for i in range(0, len(l), n):yield l[i:i+n]
 
-Spice.loadKernels()
-NP=mp.cpu_count()
-print("Number of processors: ",NP)
-
 get_ipython().magic('load_ext autoreload')
 get_ipython().magic('autoreload 2')
 
-#import ray
-#np=psutil.cpu_count(logical=False)
-#ray.init(num_cpus=2)
+Spice.loadKernels()
+NP=mp.cpu_count()
+print("Number of processors: ",NP)
 
 # ## Common data
 
@@ -67,6 +63,11 @@ def rayProcessingMulti(initials):
     raydfs=[rayProcessing(initial) for initial in initials]
     return raydfs
 
+allrays=pd.DataFrame()
+def joinResults(raydfs):
+    global allrays
+    allrays=pd.concat((allrays,)+tuple(raydfs))
+
 # ## Test data
 
 ts=[Spice.str2t("02/15/2013 03:20:34 UTC")]
@@ -83,10 +84,7 @@ rayProcessingMulti(initials)
 # ## Massive input data
 
 #Numbers
-Ntimes=10
-Nsites=10
-Npoints=10
-Nvels=10
+Ntimes=Nsites=Npoints=Nvels=5
 
 #Times
 print("Preparing times...")
@@ -126,6 +124,9 @@ elTime()
 Ninitials=len(initials)
 print(f"Number of initial conditions: {Ninitials} = {len(ts)}(ts)*{len(sites)}(sites)*{len(directions)}(dirs)")
 
+# ## Chunking and computing time estimations
+
+#Computing time estimations
 print(f"Sequential processing of {Ninitials} rays:")
 dt,dtu=elTime(0)
 tinitials=initials[:10]
@@ -136,43 +137,29 @@ tupray=tUnit(tpray)
 totrays=tpray*Ninitials
 toturays=tUnit(totrays)
 print(f"Total duration: {dtu[0]} {dtu[1]}, Duration per ray: {tupray[0]} {tupray[1]}")
-print(f"Estimated total: {toturays[0]} {toturays[1]}")
 
-# ## Prepare chunks
-
+#Chunks
 npchunk=np.int(np.ceil(Ninitials/NP))
 cinitials=[initial for initial in chunks(initials,npchunk)]
 Nchunks=len(cinitials)
 print(f"{Nchunks} chunks containing {npchunk} initial conditions")
 tchunk=tpray*npchunk
 tchunku=tUnit(tchunk)
-print(f"Estimated time per chunk: {tchunku[0]} {tchunku[1]}")
+print()
+print(f"Estimated total: {toturays[0]} {toturays[1]}")
+print(f"Estimated time per chunk (estimated parallel): {tchunku[0]} {tchunku[1]}")
 
-# ## Parallel processing
+# ## Parallel processing
 
-allraydfs=pd.DataFrame()
-def joinResults(raydfs):
-    global allraydfs
-    allraydfs=pd.concat(((allraydfs,)+tuple(raydfs)))
-
-elTime(0)
-for initials in cinitials:
-    p=mp.Process(target=rayProcessingMulti,args=(initials,))
-    p.start()
-p.join()
-elTime()
-
-"""
+allrays=pd.DataFrame()
 pool=mp.Pool(NP)
 elTime(0)
-R=[pool.apply_async(rayProcessingMulti,args=(initials,),callback=joinResults) for initials in cinitials]
+[pool.apply_async(rayProcessingMulti,args=(initials,),callback=joinResults) for initials in cinitials]
 pool.close()
 pool.join()
 elTime()
-"""
-1
 
-print("Number of results:",len(allraydfs))
+print("Number of results:",len(allrays))
 
-allraydfs.to_csv("rays_parallel.csv")
+allrays.to_csv("rays_parallel.csv")
 

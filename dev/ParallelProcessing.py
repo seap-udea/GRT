@@ -14,6 +14,9 @@
 # # GRT Parallel Processing
 # 
 
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
 from gravray import *
 from gravray.util import *
 from gravray.sampling import *
@@ -152,7 +155,7 @@ print(f"Estimated time per chunk (estimated parallel): {tchunku[0]} {tchunku[1]}
 # ## Parallel processing
 
 allrays=pd.DataFrame()
-pool=mp.Pool(NP)
+pool=mp.Pool(processes=NP,maxtasksperchild=1)
 elTime(0)
 [pool.apply_async(rayProcessingMulti,args=(inis,),callback=joinResults) for inis in cinitials]
 pool.close()

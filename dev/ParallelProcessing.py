@@ -8,7 +8,7 @@
 #################################################################################
 # Jorge I. Zuluaga (C) 2019                                                     #
 #################################################################################
-#!/usr/bin/env python
+
 # coding: utf-8
 
 # # GRT Parallel Processing
@@ -32,11 +32,11 @@ from itertools import product as cartesian
 def chunks(l, n):
     for i in range(0, len(l), n):yield l[i:i+n]
 
-get_ipython().magic('load_ext autoreload')
-get_ipython().magic('autoreload 2')
+get_ipython().run_line_magic('load_ext', 'autoreload')
+get_ipython().run_line_magic('autoreload', '2')
 
 Spice.loadKernels()
-NP=mp.cpu_count()
+NP=mp.cpu_count()-1
 print("Number of processors: ",NP)
 
 # ## Common data
@@ -87,7 +87,7 @@ rayProcessingMulti(initials)
 # ## Massive input data
 
 #Numbers
-Ntimes=Nsites=Npoints=Nvels=5
+Ntimes=Nsites=Npoints=Nvels=10
 
 #Times
 print("Preparing times...")

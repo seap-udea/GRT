@@ -139,6 +139,28 @@ class Util(object):
         else:
             return np.concatenate((elements[:1]*facLen,[elements[1]],elements[2:]*facAng))    
 
+        
+    def chunkList(mylist,chunksize):
+        """
+        Split a list in chunks with maximum size equal to chunksize
+        
+        Parameters:
+            myslist: a list of objects, list.
+            chunksize: size of each chunk, int.
+        
+        Return:
+            chunks: iterator of the chunks corresponding to mylist. 
+        
+        Examples:
+            [sublist for sublist in Util.chunkList([1,2.3,"hola",np.int,3,4,5],3)]
+            
+            produce
+    
+        """
+        for i in range(0,len(mylist),chunksize):yield mylist[i:i+chunksize]
+
+[sublist for sublist in Util.chunkList([1,2.3,"hola",np.int,3,4,5],3)]
+
 #################################################################################
 #CLASS JACOBIANS
 #################################################################################

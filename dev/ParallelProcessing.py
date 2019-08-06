@@ -24,7 +24,6 @@ from gravray.stats import *
 from tqdm import tqdm
 import pandas as pd
 import multiprocessing as mp
-import psutil
 from itertools import product as cartesian
 
 def chunks(l, n):
@@ -83,13 +82,11 @@ rayProcessingMulti(initials)
 
 # ## Massive input data
 
-np.random.seed(17)
-
 #Numbers
-Ntimes=10
+Ntimes=5
 Nsites=10
-Npoints=10
-Nvels=10
+Npoints=5
+Nvels=5
 
 #Times
 print("Preparing times...")
@@ -143,12 +140,11 @@ print(f"Estimated total: {toturays[0]} {toturays[1]}")
 
 # ## Prepare chunks
 
-#Nchunk=np.int(Ninitials/100)
-Nchunk=2500
-cinitials=[initial for initial in chunks(initials,Nchunk)]
-npchunk=len(cinitials)
-print(f"{npchunk} chunks containing {Nchunk} initial conditions")
-tchunk=tpray*Nchunk
+npchunk=np.int(np.ceil(Ninitials/NP))
+cinitials=[initial for initial in chunks(initials,npchunk)]
+Nchunks=len(cinitials)
+print(f"{Nchunks} chunks containing {npchunk} initial conditions")
+tchunk=tpray*npchunk
 tchunku=tUnit(tchunk)
 print(f"Estimated time per chunk: {tchunku[0]} {tchunku[1]}")
 

@@ -476,7 +476,8 @@ class GrtRay(object):
             celements=np.array([self.terminal.celements[0]/Const.au,self.terminal.secondary[0]])
         except:
             et=self.tdb
-            xhel=ximp=stateimp=elements=np.zeros(6)
+            ximp=self.stateHelio
+            xhel=stateimp=elements=np.zeros(6)
             celements=np.zeros(2)
 
         #Pack

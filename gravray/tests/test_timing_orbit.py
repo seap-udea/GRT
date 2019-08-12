@@ -122,7 +122,7 @@ class Test(unittest.TestCase):
             return True
         raise AssertionError("No error control")
         
-    """ START COMMENT
+    #""" START COMMENT
     def test_update_by_time(self):
         self.ray_chely.propagateRay(self.tdb_chely)
         t=self.ray_chely.states[0][0]

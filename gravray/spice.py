@@ -164,6 +164,47 @@ class Spice(object):
         dt=spy.deltet(et,"ET")
         t=et-dt
         return t
+    
+    def zappalaDistance(E1,E2):
+        """                                                                                                                                                                              
+        Zappala (1990), Nervorny & Vokrouhlicky (2006)
+        am=(a+at)/2
+        d2c=1/np.sqrt(am)*(ka*((at-a)/am)**2+ke*(et-e)**2+ki*(sinit-np.sin(i*DEG))**2+kO*(Omega-Ot)**2+kw*(omega-ot)**2)
+        Parameters:
+            E1: Elements 1, np.array(5), [q(UL),e,i(rad),W(rad),w(rad)]
+            E2: Elements 1, np.array(5), [q(UL),e,i(rad),W(rad),w(rad)]
+        Return:
+            DZ: Zappala distance (when [q]=AU, DZ<0.1 is a good match), float
+        """
+        #Coefficients
+        ka=5./4
+        ke=ki=2
+        kw=kW=1e-4
+        #Elements
+        q1,e1,i1,W1,w1=E1[:5]
+        q2,e2,i2,W2,w2=E2[:5]
+        #Derived elements
+        sini1=np.sin(i1)
+        sini2=np.sin(i2)
+
+        if e1!=1:
+            a1=np.abs(q1/(1-e1))
+        else:
+            a1=q1
+
+        if e2!=1:
+            a2=np.abs(q2/(1-e2))
+        else:
+            a2=q2
+
+        am=(a1+a2)/2
+        anm=1/np.sqrt(np.abs(am))
+        varpi1=W1+w1
+        varpi2=W2+w2
+        #Zappala metric (Zuluaga & Sucerquia, 2018)
+        DZ=anm*(ka*(a1-am)**2/am**2+ke*(e1-e2)**2+ki*(sini1-sini2)**2+kW*(W1-W2)**2+kw*(varpi1-varpi2)**2)**0.5
+
+        return DZ
 
 #################################################################################
 #Body Class

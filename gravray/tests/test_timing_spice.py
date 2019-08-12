@@ -66,10 +66,18 @@ class Test(unittest.TestCase):
     def timing_update(self):
         self.crater.updateLocation(self.tdb_moon)
         
+    #"""COMMENT START
+    def test_Dz(self):
+        E1=np.array([1.31435521e-01,7.68157345e-01,
+                     1.36782144e+02*Angle.Deg,2.80351080e+02*Angle.Deg,3.57588822e+02*Angle.Deg])
+        E2=np.array([1.48116716e-01,7.39354641e-01,
+                     1.39995394e+02*Angle.Deg,2.80805752e+02*Angle.Deg,3.56066191e+02*Angle.Deg])
+        DZ=Spice.zappalaDistance(E1,E2)
+        self.assertAlmostEqual(DZ,0.0954985,5)
+    
     def test_string_tdb(self):
         self.assertAlmostEqual(Spice.str2t("2000 JAN 01 12:00:00"),0.0,7)
 
-    #"""COMMENT START
     def test_rhill(self):
         Spice.calcHillRadius("EARTH")
         self.assertEqual(np.isclose([Spice.RH["EARTH"]],[1496558526],rtol=1e-5).tolist(),[True])

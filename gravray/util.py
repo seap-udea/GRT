@@ -159,6 +159,11 @@ class Util(object):
     
         """
         for i in range(0,len(mylist),chunksize):yield mylist[i:i+chunksize]
+            
+    def medHistogram(data,**args):
+        h,x=np.histogram(data,**args)
+        xm=(x[1:]+x[:-1])/2
+        return h,xm
 
 #################################################################################
 #CLASS JACOBIANS

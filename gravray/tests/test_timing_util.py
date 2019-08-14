@@ -32,8 +32,50 @@ import unittest
 class Test(unittest.TestCase):
 
     probs=np.array([0.1,0.2,0.40,0.3])
+    state=np.array([-2.75666323e+07,1.44279062e+08,3.02263967e+04,
+                    -2.97849475e+01,-5.48211971e+00,1.84565202e-05])
+    elements=np.array([Const.au,0.5,10.0,30.0,60.0,120.0])
+        
+    def timing_calc_trig(self):
+        Angle.calcTrig(30.0*Angle.Deg)
 
+    def timing_fin2inf(self):
+        Util.fin2Inf(0.78,scale=1)
+
+    def timing_inf2fin(self):
+        Util.inf2Fin(-5.4,scale=1)
+
+    def timing_gen_index(self):
+        Util.genIndex(self.probs)
+        
+    def timing_trans_state(self):
+        Util.transformState(self.state,[Const.km,Const.km/Const.s])
+        
+    def timing_trans_elements(self):
+        Util.transformElements(self.elements,[1/Const.au,Angle.Deg])
+        
+    def timing_arcdistance_math(self):
+        Util.sin=math.sin
+        Util.cos=math.cos
+        Util.asin=math.asin
+        Util.sqrt=math.sqrt
+        Util.arcDistance(0,0,90.0*np.pi/180.0,0.0)*180/np.pi        
+        
+    def timing_arcdistance_numpy(self):
+        Util.sin=np.sin
+        Util.cos=np.cos
+        Util.asin=np.arcsin
+        Util.sqrt=math.sqrt
+        Util.arcDistance(0,0,90.0*np.pi/180.0,0.0)*180/np.pi
+        
     #"""START COMMENT
+    def test_arcdistance(self):
+        lat1=Angle.dec((-1,50,3,59))*Angle.Deg
+        lat2=Angle.dec((+1,83,38,38))*Angle.Deg
+        lon1=Angle.dec((+1,5,42,53))*Angle.Deg
+        lon2=Angle.dec((-1,70,4,12))*Angle.Deg
+        self.assertAlmostEqual(6371*Util.arcDistance(lon1,lat1,lon2,lat2),15359.006548255658,5)
+    
     def test_fin2inf(self):
         try:
             Util.fin2Inf(2)
@@ -113,10 +155,6 @@ class Test(unittest.TestCase):
         dec=Angle.dec((-1,5,40,3.4567))
         self.assertAlmostEqual(dec,-5.66762686,5)
         
-    state=np.array([-2.75666323e+07,1.44279062e+08,3.02263967e+04,
-                    -2.97849475e+01,-5.48211971e+00,1.84565202e-05])
-    elements=np.array([Const.au,0.5,10.0,30.0,60.0,120.0])
-    
     def test_year(self):
         self.assertEqual(Const.Year,31556736.0)
         
@@ -139,25 +177,6 @@ class Test(unittest.TestCase):
                           [True]*6)
     #"""
     #END COMMENT
-
-    def timing_calc_trig(self):
-        Angle.calcTrig(30.0*Angle.Deg)
-
-    def timing_fin2inf(self):
-        Util.fin2Inf(0.78,scale=1)
-
-    def timing_inf2fin(self):
-        Util.inf2Fin(-5.4,scale=1)
-
-    def timing_gen_index(self):
-        Util.genIndex(self.probs)
-        
-    def timing_trans_state(self):
-        Util.transformState(self.state,[Const.km,Const.km/Const.s])
-        
-    def timing_trans_elements(self):
-        Util.transformElements(self.elements,[1/Const.au,Angle.Deg])
-                
 
 if __name__=='__main__':
     #Testing
@@ -185,4 +204,10 @@ if __name__=='__main__':
 
         print("Timing state transformation:")        
         get_ipython().magic('timeit -n 1000 Test().timing_trans_state()',scope=globals())
+        
+        print("Timing arcdistance using math functions:")        
+        get_ipython().magic('timeit -n 1000 Test().timing_arcdistance_math()',scope=globals())
+
+        print("Timing arcdistance using numpy functions:")        
+        get_ipython().magic('timeit -n 1000 Test().timing_arcdistance_numpy()',scope=globals())
 

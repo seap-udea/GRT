@@ -24,6 +24,8 @@ import math
 import unittest
 from copy import deepcopy
 from time import time,strftime
+import warnings
+warnings.filterwarnings('ignore')
 
 #################################################################################
 #This code is used only for development purposes in Jupyter

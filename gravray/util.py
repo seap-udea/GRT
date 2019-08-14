@@ -36,7 +36,16 @@ class Util(object):
         genIndex:
         transformState:
         transformElements:
-    """    
+    """ 
+    log=math.log
+    log10=math.log10
+    exp=math.exp
+    sin=math.sin
+    cos=math.cos
+    asin=math.asin
+    acos=math.acos
+    sqrt=math.sqrt
+    
     def fin2Inf(x,scale=1):
         """
         Map variable x from the interval (0,scale) to a new variable t in the interval (-inf,+inf).
@@ -52,7 +61,7 @@ class Util(object):
         """
         u=x/scale
         try:
-            t=math.log(u/(1-u))
+            t=Util.log(u/(1-u))
             return t
         except ValueError as e:
             errorMsg(e,f"x value ({x}) must be in the interval (0,scale) (eg. (0,{scale}))")
@@ -71,8 +80,38 @@ class Util(object):
         Return:
             Mapped value x: t->-inf correspond to x -> 0, t->+inf correspond to x -> 1, float.        
         """
-        x=scale/(1+math.exp(-t))
+        x=scale/(1+Util.exp(-t))
         return x
+    
+    def fin2Uno(x,scale=1):
+        """
+        Simple mapping from a finite interval (0,scale) to (0,1)
+        
+        Parameters:
+            x: value in the range (0,scale), float
+            
+        Optional:
+            scale: maximum value for x (default 1), float.
+        
+        Return:
+            Mapped value t: t = x/scale, float.
+        """
+        return x/scale
+    
+    def uno2Fin(t,scale=1):
+        """
+        Simple mapping from a finite interval (0,1) to (0,scale)
+        
+        Parameters:
+            t: value in the range (0,1), float
+            
+        Optional:
+            scale: maximum value for x (default 1), float.
+        
+        Return:
+            Mapped value t: x = t*scale, float.
+        """
+        return t*scale
     
     def genIndex(probs):
         """
@@ -161,9 +200,63 @@ class Util(object):
         for i in range(0,len(mylist),chunksize):yield mylist[i:i+chunksize]
             
     def medHistogram(data,**args):
+        """
+        Compute 1d histogram.
+        
+        Parameters:
+            data: data values, numpy array (N)
+            **args: options for the numpy histogram routine, dictionary
+            
+        Return:
+            h: histogram.
+            xm: mid points of the intervals
+        """
         h,x=np.histogram(data,**args)
         xm=(x[1:]+x[:-1])/2
         return h,xm
+    
+    def mantisaExp(x):
+        """
+        Calculate the mantisa and exponent of a number.
+        
+        Parameters:
+            x: number, float.
+            
+        Return:
+            man: mantisa, float
+            exp: exponent, float.
+            
+        Examples:
+            m,e=mantisaExp(234.5), returns m=2.345, e=2
+            m,e=mantisaExp(-0.000023213), return m=-2.3213, e=-5
+        """
+        xa=np.abs(x)
+        s=np.sign(x)
+        exp=np.int(np.floor(np.log10(xa)))
+        man=s*xa/10**(exp)
+        return man,exp
+    
+    def arcDistance(lon1,lat1,lon2,lat2):
+        """
+        Compute arc distance between two points.
+
+        Parameters:
+            lon1,lat1,lon2,lat2: latitude and longitudes of the points, float, radians.
+            
+        Return:
+            arc: angle between points, float, radians
+            
+        """
+        #Haversine
+        HAV=lambda theta:Util.sin(theta/2)**2
+
+        #Haversine
+        h=HAV(lat2-lat1)+Util.cos(lat1)*Util.cos(lat2)*HAV(lon2-lon1)
+
+        #Angular distance
+        delta=2*Util.asin(Util.sqrt(h))
+
+        return delta
 
 #################################################################################
 #CLASS JACOBIANS

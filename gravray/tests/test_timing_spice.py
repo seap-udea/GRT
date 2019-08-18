@@ -19,9 +19,6 @@ from gravray.spice import *
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
-get_ipython().magic('load_ext autoreload')
-get_ipython().magic('autoreload 2')
-
 # # Test Spice Class
 # 
 # Test suite of the Util submodule of GravRay.
@@ -55,12 +52,12 @@ class Test(unittest.TestCase):
         
     def timing_update_earth(self):
         Spice.loadKernels()
-        tdb=Spice.str2t("2000 JAN 01 12:00:00")
+        tdb=Spice.str2tdb("2000 JAN 01 12:00:00 TDB")
         self.earth.updateBody(tdb)
 
     def timing_update_moon(self):
         Spice.loadKernels()
-        tdb=Spice.str2t("2000 JAN 01 12:00:00")
+        tdb=Spice.str2tdb("2000 JAN 01 12:00:00 TDB")
         self.moon.updateBody(tdb)
     
     def timing_update(self):

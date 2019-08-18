@@ -232,8 +232,11 @@ class Util(object):
         """
         xa=np.abs(x)
         s=np.sign(x)
-        exp=np.int(np.floor(np.log10(xa)))
-        man=s*xa/10**(exp)
+        try:
+            exp=np.int(np.floor(np.log10(xa)))
+            man=s*xa/10**(exp)
+        except OverflowError as e:
+            man=exp=0
         return man,exp
     
     def arcDistance(lon1,lat1,lon2,lat2):
@@ -401,7 +404,7 @@ class Jacobians(object):
 
         return Jck
 
-    def calcMapJacobian(elements,scales):
+    def calcDetMapJacobian(elements,scales):
         """
         Parameters:
             epsilon: bound elements, numpy array (N)
@@ -419,12 +422,15 @@ class Jacobians(object):
         """
         JEe=np.identity(6)
         JeE=np.identity(6)
+
+        detJEe=1
+        detJeE=1
         for i,eps in enumerate(elements):
             x=eps/scales[i]
-            JEe[i,i]=(1/scales[i])/(x*(1-x))
-            JeE[i,i]=1/JEe[i,i]
+            detJEe*=(1/scales[i])/(x*(1-x))
             
-        return JEe,JeE
+        detJeE=1/detJEe
+        return detJEe,detJeE
     
     def calcImpactJacobian(body,Rimp,state):
         """

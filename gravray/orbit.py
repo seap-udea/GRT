@@ -17,6 +17,8 @@ from gravray import *
 from gravray.util import *
 from gravray.spice import *
 
+import pandas as pd
+
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
 get_ipython().magic('load_ext autoreload')

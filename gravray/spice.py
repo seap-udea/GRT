@@ -15,11 +15,9 @@
 
 from gravray import *
 from gravray.util import *
+import re
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
-
-get_ipython().magic('load_ext autoreload')
-get_ipython().magic('autoreload 2')
 
 #################################################################################
 #SPICE data structure
@@ -163,6 +161,43 @@ class Spice(object):
         et=spy.str2et(date)
         dt=spy.deltet(et,"ET")
         t=et-dt
+        return t
+    
+    def str2tdb(date):
+        """
+        Convert date from string to TDB 
+
+        Parameters:
+            date: date string (eg. CCYY Mmm DD HH:HH:HH [TDB[+/-N]|UTC[+/-N]]), string
+
+        Returns:
+            tdb: tdb, float, seconds since 2000 JAN 01 12:00:00 TDB.
+
+        Example:
+            tdb=Spice.str2t("2000 JAN 01 12:00:00 TDB"), tdb = 0
+
+            tdb=Spice.str2t("2000 JAN 01 12:00:00 UTC"), tdb = 64.2 
+
+            tdb=Spice.str2t("2000 JAN 01 12:00:00"), tdb = 64.2 
+
+            tdb=Spice.str2t("2000 JAN 01 12:00:00 TDB-5"), tdb = 18000 
+        """
+        parts=date.split(" ")
+        ttype="UTC"
+        zone=parts[-1]
+
+        if re.search(":",parts[-1]) is None:
+            if re.search("TDB",zone):ttype="TDB"
+            zone=zone.replace("TDB","UTC")
+        dstring=" ".join(parts[:-1])+f" {zone}"
+
+        if ttype=="TDB":
+            et=spy.str2et(dstring)
+            dt=spy.deltet(et,"ET")
+            t=et-dt
+        else:
+            t=spy.str2et(dstring)
+
         return t
     
     def zappalaDistance(E1,E2):

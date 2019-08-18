@@ -18,15 +18,12 @@ from gravray.util import *
 
 from matplotlib import pyplot as plt,colors
 from mpl_toolkits.basemap import Basemap
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 get_ipython().magic('matplotlib nbagg')
 
 get_ipython().magic('matplotlib nbagg')
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
-
-get_ipython().magic('load_ext autoreload')
-get_ipython().magic('autoreload 2')
 
 class PlotGrid(object):
     """
@@ -226,12 +223,26 @@ class PlotGrid(object):
         """
         opts=dict()
         opts.update(args)
-
+            
         hist=[]
         for i,propi in enumerate(self.properties):
+            if self.dproperties[propi]["range"] is not None:
+                xmin,xmax=self.dproperties[propi]["range"]
+            else:
+                xmin=data[:,i].min()
+                xmax=data[:,i].max()
             for j,propj in enumerate(self.properties):
                 if j<=i:continue
+                    
+                if self.dproperties[propj]["range"] is not None:
+                    ymin,ymax=self.dproperties[propj]["range"]
+                else:
+                    ymin=data[:,j].min()
+                    ymax=data[:,j].max()                
+                
+                opts["range"]=[[xmin,xmax],[ymin,ymax]]
                 h,xe,ye,im=self.axp[propi][propj].hist2d(data[:,i],data[:,j],**opts)
+                
                 hist+=[im]
                 if colorbar:
                     #Create color bar
@@ -306,7 +317,7 @@ class Map(object):
     parallels=np.arange(-75,90,15)
     drawparallels=dict(labels=[1,1,0,0],labelstyle="+/-")
 
-    almucantars=np.arange(0.0,90.0,15)
+    almucantars=np.arange(0.0,90.0,20.0)
     drawalmucantars=dict(labels=[0,0,0,0],labelstyle="+/-",color='w')
 
     #Meridians
@@ -332,10 +343,9 @@ class Map(object):
     date=datetime.utcnow()
     nightshade=dict(color='k',delta=0.25,alpha=0.5)
     
-    def __init__(self,maptype,ax,**args):
+    def __init__(self,maptype,**args):
 
         self.maptype=maptype
-        self.ax=ax
 
         #Select type of map
         if maptype=="sky":
@@ -351,7 +361,10 @@ class Map(object):
         self.area=Basemap(**opts)
         self.mapopts=deepcopy(opts)
     
-    def setDecoration(self):
+    def drawMap(self,ax):
+
+        #Axis
+        self.ax=ax
 
         #Draw boundary
         if self.drawmapboundary is not None:
@@ -377,9 +390,9 @@ class Map(object):
                     self.area.drawcountries(ax=self.ax,**self.drawcountries)
                 if self.fillcontinents is not None:
                     self.area.fillcontinents(ax=self.ax,**self.fillcontinents)
-                #Night shade
-                if self.nightshade is not None:
-                    self.area.nightshade(self.date,ax=self.ax,**self.nightshade)
+            #Night shade
+            if self.nightshade is not None:
+                self.area.nightshade(self.date,ax=self.ax,**self.nightshade)
                     
         elif self.maptype=="sky":
             if self.drawalmucantars is not None:
@@ -389,12 +402,60 @@ class Map(object):
             
             #Separate floor from sky
             fun=lambda lon,lat:1 if lat>0 else 0
-            lons=np.linspace(0,360.0,100)
-            lats=np.linspace(-30,90.0,100)
+            lons=np.linspace(0,360.0,1000)
+            lats=np.linspace(-30,90.0,1000)
             cmap=colors.ListedColormap(['g','k'])
-            self.contourFunction(fun,lons,lats,levels=[0,1],colors=['k'],lw=2)
+            self.contourFunction(fun,lons,lats,levels=[0,1],colors=['r'],lw=2)
             self.contourfFunction(fun,lons,lats,vmin=0,vmax=1,cmap=cmap)
                 
+    def plotMap(self,lons,lats,**args):
+        xs,ys=self.area(lons,lats)
+        p=self.ax.plot(xs,ys,**args)
+        return p
+    
+    def scatterMap(self,lons,lats,**args):
+        xs,ys=self.area(lons,lats)
+        s=self.ax.scatter(xs,ys,**args)
+        return s
+
+    def textMap(self,lon,lat,s,**args):
+        x,y=self.area(lon,lat)
+        t=self.ax.text(x,y,s,**args)
+        return t
+
+    def makeGrid(self,nlon,nlat):
+        
+        if self.maptype=="surface":
+            nb_lat2=nlat
+            nb_lat=2*nb_lat2
+            nb_lon=3*(2*(nb_lat+1)-1)
+            nlat=2*nb_lat
+            nlon=nb_lon
+            lats=np.zeros((2*nb_lat,nb_lon))
+            lons=np.zeros((2*nb_lat,nb_lon))
+            dlat=90./nb_lat2
+            for i in range(nb_lat):
+                nb_lon = 2*(i+1)-1
+                if ((i+1) > nb_lat2):
+                    nb_lon = 2*(nb_lat - i)-1
+                dlon = 120./nb_lon
+                lats[2*i][:] = 90 - i*dlat
+                lats[2*i+1][:] = 90 - (i+1)*dlat
+                for j in range(nb_lon):
+                    lons[2*i][j] = j*dlon
+                    lons[2*i+1][j] = j*dlon
+                    for k in range(1,3):
+                        lons[2*i][j + k*nb_lon] = j*dlon + 120.*k
+                        lons[2*i+1][j + k*nb_lon] = j*dlon + 120.*k
+                lons[2*i][3*nb_lon:] = nb_lon*dlon + 240.
+                lons[2*i+1][3*nb_lon:] = nb_lon*dlon + 240.
+            lons=lons-180
+        elif self.maptype=="sky":
+            lons,lats=self.area.makegrid(nlon,nlat)
+
+        grid=np.zeros((nlat,nlon))
+        return nlon,nlat,lons,lats,grid
+    
     def contourFunction(self,function,lons,lats,**args):
         #Lat and lon mesh grid
         P=np.zeros((len(lons),len(lats)))

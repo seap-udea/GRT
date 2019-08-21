@@ -65,7 +65,7 @@ setuptools.setup(
         pip3 install -U git+https://github.com/matplotlib/basemap.git
     
     install_requires=[
-        'scipy','spiceypy','ipython','matplotlib','tqdm','quadpy'
+        'scipy','spiceypy','ipython','matplotlib','tqdm','quadpy','scikit-monaco'
         ],
 
     #######################################################################

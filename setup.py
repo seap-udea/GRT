@@ -61,8 +61,8 @@ setuptools.setup(
     #######################################################################
     
     #Install basemap: 
-        sudo apt-get install python3-mpltoolkits.basemap libgeos-dev
-        pip3 install -U git+https://github.com/matplotlib/basemap.git
+    #    sudo apt-get install python3-mpltoolkits.basemap libgeos-dev
+    #    pip3 install -U git+https://github.com/matplotlib/basemap.git
     
     install_requires=[
         'scipy','spiceypy','ipython','matplotlib','tqdm','quadpy','scikit-monaco'

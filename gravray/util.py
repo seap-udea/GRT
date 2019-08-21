@@ -543,7 +543,37 @@ class _NQuad(object):
             return value,self.abserr
             
 class MultiQuad(object):
+    """
+    Multidimensional quadrature integration.
+
+    Initializacion attributes:
     
+        multifunc: multidimensional integration routine, function with signature:
+                    
+                           func(X,**kwargs)
+                           
+                   where X is a matrix (NxM) with N the number of variables and M the number 
+                   of values where the variables will be evaluated.
+                   
+        variables: list with name of variables, list of strings (N)
+        
+    Optional initialization attributes:
+        
+        integrator: name of the integrator (see MultiQuad._integrators).
+                   
+    Examples: 
+    
+        def func(X,factor=1):
+            r,q,f=X
+            p=factor*1/np.sqrt((2*np.pi)**3)*np.exp(-r**2/2)*r**2*np.cos(q)
+            return p
+            
+        nint=MultiQuad(func,["r","q","f"],"quad")
+        i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+        
+        nint.setIntegrator("fixed_quad")
+        i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))        
+    """    
     _integrators=[
         "fixed_quad",
         "quad",
@@ -566,6 +596,32 @@ class MultiQuad(object):
             raise AssertionError(f"Integrator {nintegrator} not recognized")
 
     def integrate(self,variables,args=()):
+        """
+        Compute the integral in a given subdomain of the function variables.
+        
+        Parameters:
+        
+            variables: dictionary with variable values or ranges, dictionary.
+        
+        Optional parametes:
+        
+            args: arguments for the function.
+            
+        Example:
+        
+            def func(X,factor=1):
+                r,q,f=X
+                p=factor*1/np.sqrt((2*np.pi)**3)*np.exp(-r**2/2)*r**2*np.cos(q)
+                return p
+
+            nint=MultiQuad(func,["r","q","f"],"quad")
+
+            i=nint.integrate({"r":[0.0,1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+
+            i=nint.integrate({"r":[1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]},args=(1.0,))
+
+            i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+        """
         
         iconst=[]
         values=[]

@@ -17,6 +17,7 @@ from gravray import *
 from gravray.util import *
 from gravray.spice import *
 from gravray.orbit import *
+from gravray.stats import *
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
@@ -49,6 +50,13 @@ class Test(unittest.TestCase):
     chely=Location(earth,61.1*Angle.Deg,54.8*Angle.Deg,23.3*Const.km)
     #Ray
     ray_chely=GrtRay(chely,101.1*Angle.Deg,15.9*Angle.Deg,-18.6*Const.km)
+    #Direction
+    Aloc=103.5*Angle.Deg
+    hloc=18.55*Angle.Deg
+    vimp=-18.6*Const.km/Const.s
+    lon=59.8703**Angle.Deg #rad
+    lat=55.0958*Angle.Deg #rad
+    alt=23.3*Const.km #m
     
     #Moon impact
     tdb_moon=Spice.str2t("2000 JAN 02 12:00:00 UTC")
@@ -104,7 +112,65 @@ class Test(unittest.TestCase):
         W=60.0
         M=20.0
         self.orbit.setElements([q,e,i*Angle.Deg,W*Angle.Deg,w*Angle.Deg,M*Angle.Deg],0.0)
+    
+    def timing_set_prob(self):
+        #Time
+        datestring="02/15/2013 03:20:34"
+        fmt="%m/%d/%Y %H:%M:%S"
+        t=Spice.str2tdb(datestring)
 
+        #Population
+        weights=[0.6]
+        locs=[
+            [0.5,0.5,-2.0],
+            [2.0,0.3,-2.6]
+        ]
+        scales=[
+            [1.3,0.7,0.5],
+            [0.4,0.9,1.6]
+        ]
+        angles=[
+            [-40.0*Angle.Deg,-86.0*Angle.Deg,0.0*Angle.Deg],
+            [+80.0*Angle.Deg,-109.0*Angle.Deg,0.0*Angle.Deg]
+        ]
+        ranges=[
+            [Util.fin2Inf(1e-2,360.0),Util.fin2Inf(360.0-1e-2,360.0)],
+            [Util.fin2Inf(1e-2,360.0),Util.fin2Inf(360.0-1e-2,360.0)]
+        ]
+        NEOs=MultiVariate([1,1,1,0,0])
+        NEOs.setUnflatten(weights,locs,scales,angles,ranges)
+
+        self.prob=GrtProb(t,self.earth,NEOs,verbose=False)
+        self.prob.setLocation(self.lon,self.lat,self.alt)
+    
+    #""" START COMMENT
+    def test_prob_Pdir(self):
+        self.timing_set_prob()
+        p=self.prob.calcPdir([self.Aloc,self.hloc,self.vimp])
+        self.assertEqual(np.isclose([p,self.prob.ph,self.prob.detJ],
+                                    [5.228572267234881e-26,5.586619321805399e-05,-9.359098886202953e-22],
+                                    rtol=1e-5).tolist(),[True]*3)
+
+    def test_prob_Psky(self):
+        self.timing_set_prob()
+        p=self.prob.calcPsky(np.array([[self.Aloc],[self.hloc],[self.vimp]]))
+        self.assertEqual(np.isclose(p,[5.22857227e-26],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.detJs,[-9.35909889e-22],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.phs,[5.58661932e-05],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.selements[0],
+                                    [0.72231578,0.5297087,5.18079402,326.57568287,103.0150748,24.56944643],
+                                    rtol=1e-5).tolist(),[True]*6)
+        
+    def test_prob_Pimp(self):
+        self.timing_set_prob()
+        p=self.prob.calcPimp(np.array([[self.lon],[self.lat],[self.alt],
+                                       [self.Aloc],[self.hloc],[self.vimp]]))
+        self.assertEqual(np.isclose(p,[5.22857227e-26],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.detJs,[-9.35909889e-22],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.phs,[5.58661932e-05],rtol=1e-5).tolist(),[True]*1)
+        self.assertEqual(np.isclose(self.prob.selements[0],
+                                    [0.72231578,0.5297087,5.18079402,326.57568287,103.0150748,24.56944643],
+                                    rtol=1e-5).tolist(),[True]*6)
     def test_collision(self):
         t=414170434.0 
         lon=204.014122*Angle.Deg
@@ -122,7 +188,6 @@ class Test(unittest.TestCase):
             return True
         raise AssertionError("No error control")
         
-    #""" START COMMENT
     def test_update_by_time(self):
         self.ray_chely.propagateRay(self.tdb_chely)
         t=self.ray_chely.states[0][0]

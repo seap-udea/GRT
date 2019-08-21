@@ -29,6 +29,12 @@ TIMING=1
 TEST=1
 
 import unittest
+
+def func(X,factor=1):
+    r,q,f=X
+    p=factor*1/np.sqrt((2*np.pi)**3)*np.exp(-r**2/2)*r**2*np.cos(q)
+    return p
+
 class Test(unittest.TestCase):
 
     probs=np.array([0.1,0.2,0.40,0.3])
@@ -67,8 +73,51 @@ class Test(unittest.TestCase):
         Util.asin=np.arcsin
         Util.sqrt=math.sqrt
         Util.arcDistance(0,0,90.0*np.pi/180.0,0.0)*180/np.pi
-        
+
     #"""START COMMENT
+    def test_multi_fixed_quad(self):
+        nint=MultiQuad(func,["r","q","f"],integrator="fixed_quad")
+
+        
+        i,di=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.1209853622595717,rtol=1e-3).tolist(),[True]*1)
+
+        i,di=nint.integrate({"r":[1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.4839414757239004,rtol=1e-3).tolist(),[True]*1)
+
+        i,di=nint.integrate({"r":[0.0,1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.18913556487782582,rtol=1e-3).tolist(),[True]*1)
+    
+    def test_multi_quad(self):
+        nint=MultiQuad(func,["r","q","f"],integrator="quad")
+
+        i,di=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.1209853622595717,rtol=1e-3).tolist(),[True]*1)
+
+        i,di=nint.integrate({"r":[1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.4839414757239004,rtol=1e-3).tolist(),[True]*1)
+        
+        i,di=nint.integrate({"r":[0.0,1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]})
+        self.assertEqual(np.isclose([i],0.19874804309879915,rtol=1e-3).tolist(),[True]*1)
+        
+    def test_multi_integral(self):
+        
+        nint=MultiCube(func,["r","q","f"])
+        scheme="stroud_cn_5_5"
+        nint.setScheme(scheme)
+        i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+        self.assertEqual(np.isclose([i],0.120985,rtol=1e-3).tolist(),[True]*1)
+        
+        scheme="stroud_cn_5_5"
+        nint.setScheme(scheme)
+        i=nint.integrate({"r":[1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]},args=(1.0,))
+        self.assertEqual(np.isclose([i],0.483941,rtol=1e-3).tolist(),[True]*1)
+
+        scheme="stroud_cn_5_4"
+        nint.setScheme(scheme)
+        i=nint.integrate({"r":[0.0,1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]},args=(1.0,))
+        self.assertEqual(np.isclose([i],0.198748,rtol=1e-3).tolist(),[True]*1)
+
     def test_arcdistance(self):
         lat1=Angle.dec((-1,50,3,59))*Angle.Deg
         lat2=Angle.dec((+1,83,38,38))*Angle.Deg

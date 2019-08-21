@@ -110,23 +110,6 @@ class Test(unittest.TestCase):
                                     rtol=1e-1).tolist(),
                          [True]*M)
 
-    def test_numerical_jacobian(self):
-        def polar(X):
-            r,q=X
-            x=r*np.cos(q)
-            y=r*np.sin(q)
-            return np.array([x,y])
-
-        r=2.0
-        q=np.pi/3
-        X=[2.0,np.pi/3]
-        dX=[1e-3]*2
-        y,Jyx=Jacobians.computeNumericalJacobian(polar,X,dX)
-        self.assertEqual(np.isclose(Jyx.flatten(),
-                                    [np.cos(q),-r*np.sin(q),np.sin(q),r*np.cos(q)],
-                                    rtol=1e-5).tolist(),
-                         [True]*4)
-        
     def test_calc_trig(self):
         self.assertEqual(np.isclose(Angle.calcTrig(30.0*Angle.Deg),
                                     [np.sqrt(3)/2,1./2],

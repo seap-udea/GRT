@@ -18,6 +18,8 @@ from gravray.util import *
 from gravray.spice import *
 
 import pandas as pd
+# https://pypi.org/project/quadpy/
+import quadpy
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
@@ -303,6 +305,269 @@ class KeplerianOrbit(object):
         #Store secondary
         self.secondary=np.array([n,ab,eps,b,cosE,sinE])
 
+#################################################################################
+#CLASS JACOBIANS
+#################################################################################
+class Jacobians(object):
+    """
+    This abstract class contains useful methods for computing Jacobians.
+    
+    Attributes:
+        None.
+        
+    Methods:
+        computeJacobian: numerically compute jacobian.
+    
+    """
+    def computeNumericalJacobian(jfun,x,dx,**args):
+        """
+        Computes numerically the Jacobian matrix of a multivariate function.
+        
+        Parameters:
+            jfun: multivariate function with the prototype "def jfun(x,**args)", function
+            x: indepedent variables, numpy array (N).
+            dx: step size of independent variables, numpy array (N).
+            **args: argument of the function
+            
+        Return:
+            y: dependent variables, y=jfun(x,**args)
+            Jyx: Jacobian matrix:
+            
+              Jif= [dy_1/dx_1,dy_1/dx_2,...,dy_1/dx_N,
+                    dy_2/dx_1,dy_2/dx_2,...,dy_2/dx_N,
+                                 . . . 
+                    dy_N/dx_1,dy_N/dx_2,...,dy_N/dx_N,]
+        """
+        N=len(x)
+        J=np.zeros((N,N))
+        y=jfun(x,**args)
+        for i in range(N):
+            for j in range(N):
+                pre=[x[k] for k in range(j)]
+                pos=[x[k] for k in range(j+1,N)]
+                yi=lambda t:jfun(pre+[t]+pos,**args)[i]
+                dyidxj=(yi(x[j]+dx[j])-yi(x[j]-dx[j]))/(2*dx[j])
+                J[i,j]=dyidxj
+        return y,J
+
+    def calcKeplerianJacobians(mu,celements,state):
+        """
+        Compute the Jacobian Matrix of the transformation from classical 
+        orbital elements (a,e,i,w,W,M) to cartesian state vector (x,y,z,x',y',z').
+
+        Return:
+
+            Jc2k = [dx/da,dx/de,dx/di,dx/dw,dx/dW,dx/dM,
+                    dy/da,dy/de,dy/di,dy/dw,dy/dW,dy/dM,
+                    dz/da,dz/de,dz/di,dz/dw,dz/dW,dz/dM,
+                    dx'/da,dx'/de,dx'/di,dx'/dw,dx'/dW,dx'/dM,
+                    dy'/da,dy'/de',dy'/di,dy'/dw,dy'/dW,dy'/dM,
+                    dz'/da,dz'/de,dz'/di',dz'/dw,dz'/dW,dz'/dM],
+
+                    Numpy array 6x6, units compatible with mu and a.
+        """
+        a,e,i,W,w,M=celements
+        q=a*(1-e)
+
+        #Orbit signature
+        if e<1:
+            s=+1
+        elif e>1:
+            s=-1
+        else:
+            s=0
+        
+        #Trigonometric function
+        cosi,sini=Angle.calcTrig(i)
+        cosw,sinw=Angle.calcTrig(w)
+        cosW,sinW=Angle.calcTrig(W)
+
+        #Components of the rotation matrix
+        A=(cosW*cosw-cosi*sinW*sinw);B=(-cosW*sinw-cosw*cosi*sinW)
+        C=(cosw*sinW+sinw*cosi*cosW);D=(-sinw*sinW+cosw*cosi*cosW)
+        F=sinw*sini;G=cosw*sini
+
+        #Primary auxiliar variables
+        ab=np.abs(a)
+        n=np.sqrt(mu/ab**3)
+        nu=n*a**2
+        eps=np.sqrt(s*(1-e**2))
+
+        #Get cartesian coordinates
+        x,y,z,vx,vy,vz=state
+        r=(x**2+y**2+z**2)**0.5
+        nur=nu/r
+        
+        #Eccentric anomaly as obtained from indirect information
+        #From the radial equation: r = a (1-e cos E)
+        cosE=(1/e)*(1-r/a)
+
+        #From the general equation for y
+        #NOTE: This is the safest way to obtain sinE without the danger of singularities
+        sinE=(y-a*(cosE-e)*C)/(ab*eps*D)
+
+        #dX/da
+        Ja=np.array([x/a,y/a,z/a,-vx/(2*a),-vy/(2*a),-vz/(2*a)])
+
+        #dX/de
+        dcosEde=-s*a*sinE**2/r
+        dsinEde=a*cosE*sinE/r
+        dnurde=(nu*a/r**2)*(cosE-(ab/r)*e*sinE**2)
+        depsde=-s*e/eps
+
+        drAde=a*(dcosEde-1)
+        drBde=ab*(depsde*sinE+eps*dsinEde)
+
+        dvAde=-(dnurde*sinE+nur*dsinEde)
+        dvBde=(dnurde*eps*cosE+nur*depsde*cosE+nur*eps*dcosEde)
+
+        Je=np.array([
+            drAde*A+drBde*B,
+            drAde*C+drBde*D,
+            drAde*F+drBde*G,
+            dvAde*A+dvBde*B,
+            dvAde*C+dvBde*D,
+            dvAde*F+dvBde*G,
+        ])
+
+        #dX/di
+        Ji=np.array([z*sinW,-z*cosW,-x*sinW+y*cosW,vz*sinW,-vz*cosW,-vx*sinW+vy*cosW])
+
+        #dX/dw
+        Jw=np.array([-y*cosi-z*sini*cosW,x*cosi-z*sini*sinW,sini*(x*cosW+y*sinW),            -vy*cosi-vz*sini*cosW,vx*cosi-vz*sini*sinW,sini*(vx*cosW+vy*sinW)])
+
+        #dX/dW
+        JW=np.array([-y,x,0,-vy,vx,0])
+
+        #dX/dM
+        JM=np.concatenate(((ab**3/mu)**0.5*np.array([vx,vy,vz]),
+                           (mu*ab**3)**0.5*np.array([-x/r**3,-y/r**3,-z/r**3])))
+
+        #Jacobian
+        Jck=np.array([Ja,Je,Ji,JW,Jw,JM]).transpose()
+
+        return Jck
+
+    def calcDetMapJacobian(elements,scales):
+        """
+        Parameters:
+            epsilon: bound elements, numpy array (N)
+            scales: scales for the bound elements ()
+
+        Return:
+
+            Jif= [dE_1/de_1,        0,        0,...,        0,
+                          0,dE_2/de_2,        0,...,        0,
+                          0,        0,dE_2/de_2,...,        0,
+                                 . . . 
+                          0,        0,        0,...,dE_N/de_N]
+
+            where dE/de = (1/s) /[x(1-x)] and x = e/s.
+        """
+        JEe=np.identity(6)
+        JeE=np.identity(6)
+
+        detJEe=1
+        detJeE=1
+        for i,eps in enumerate(elements):
+            x=eps/scales[i]
+            detJEe*=(1/scales[i])/(x*(1-x))
+            
+        detJeE=1/detJEe
+        return detJEe,detJeE
+    
+    def calcImpactJacobian(body,Rimp,state):
+        """
+        Compute the Jacobian Matrix of the transformation from local impact conditions 
+        (lon,lat,alt,A,h,v) to cartesian state vector (x,y,z,x',y',z') (in the body reference frame).
+
+        Parameters:
+            Rimp: Impact vector
+                lon: Geographic longitude (0,2pi), float, radians
+                lat: Geographic latitude (0,2pi), float, radians
+                alt: Altitude over the ellipsoid (0,inf), float, km
+                A: Azimuth (0,2pi), float, radians
+                h: Elevation (-pi/2,pi/2), float, radians
+                v: Impact speed (-inf,inf), float, km/s (negative if it is impacting)
+            state: State vector (x,y,z,x',y',z'), numpy array (6)
+
+        Return:
+
+            Jcl = [dx/dlon,dx/dlat,dx/dalt,dx/dA,dx/dh,dx/dv,
+                   dy/dlon,dy/dlat,dy/dalt,dy/dA,dy/dh,dy/dv,
+                   dz/dlon,dz/dlat,dz/dalt,dz/dA,dz/dh,dz/dv,
+                   dx'/dlon,dx'/dlat,dx'/dalt,dx'/dA,dx'/dh,dx'/dv,
+                   dy'/dlon,dy'/dlat,dy'/dalt,dy'/dA,dy'/dh,dy'/dv,
+                   dz'/dlon,dz'/dlat,dz'/dalt,dz'/dA,dz'/dh,dz'/dv],
+
+                Numpy 6x6 array.
+        """
+        #Local to rotating
+        lon,lat,alt,A,h,vimp=Rimp
+        x,y,z,vx,vy,vz=state
+        
+        coslon,sinlon=Angle.calcTrig(lon)
+        coslat,sinlat=Angle.calcTrig(lat)
+        cosA,sinA=Angle.calcTrig(A)
+        cosh,sinh=Angle.calcTrig(h)
+        
+        P=body.Prot
+        a=body.Ra
+        b=body.Rc
+        Tbod2ecl=body.Tbod2ecl
+        
+        #Auxiliar
+        fr=2*np.pi*np.sqrt(x**2+y**2)/(P*vimp)
+        N=a**2/np.sqrt(a**2*coslat**2+b**2*sinlat**2)
+        n2=(2*np.pi/P)**2
+
+        #dX/dlon:
+        Jlon=np.array([-y,x,0,-vy,vx,0])
+
+        #dX/dlat:
+        dxdlat=(a**2-b**2)*coslat*sinlat*N**3/a**4*coslat*coslon-(N+alt)*sinlat*coslon
+        dydlat=(a**2-b**2)*coslat*sinlat*N**3/a**4*coslat*sinlon-(N+alt)*sinlat*sinlon
+        Jlat=np.array([
+            dxdlat,
+            dydlat,
+            b**2*(a**2-b**2)*coslat*sinlat*N**3/a**6*sinlat+(b**2*N/a**2+alt)*coslat,
+            -vimp*cosh*cosA*coslat*coslon-n2*sinlon/(fr*vimp)*(x*dxdlat+y*dydlat)-vimp*sinh*sinlat*coslon,
+            -vimp*cosh*cosA*coslat*sinlon+n2*coslon/(fr*vimp)*(x*dxdlat+y*dydlat)-vimp*sinh*sinlat*sinlon,
+            vimp*(-cosh*cosA*sinlat+sinh*coslat)
+        ])
+
+        #dX/dalt:
+        Jalt=np.array([
+            coslat*coslon,coslat*sinlon,sinlat,
+            -n2*sinlon/(fr*vimp)*(x*coslat*coslon+y*coslat*sinlon),
+            +n2*coslon/(fr*vimp)*(x*coslat*coslon+y*coslat*sinlon),
+            0
+        ])
+
+        #dX/dA:
+        JA=np.array([0,0,0,
+            vimp*(cosh*sinA*sinlat*coslon-cosh*cosA*sinlon),
+            vimp*(cosh*sinA*sinlat*sinlon+cosh*cosA*coslon),
+            -vimp*cosh*sinA*coslat,
+           ])
+
+        #dX/dh:
+        Jh=np.array([0,0,0,
+            vimp*(sinh*cosA*sinlat*coslon+sinh*sinA*sinlon+cosh*coslat*coslon),
+            vimp*(sinh*cosA*sinlat*sinlon-sinh*sinA*coslon+cosh*coslat*sinlon),
+            vimp*(-sinh*cosA*coslat+cosh*sinlat),
+            ])
+
+        #dX/dvimp:
+        Jv=np.array([0,0,0,vx/vimp+sinlon*fr,vy/vimp-coslon*fr,vz/vimp])
+
+        Jcl=np.array([Jlon,Jlat,Jalt,JA,Jh,Jv]).transpose()
+        Jel=np.zeros_like(Jcl)
+        for i in range(6):
+            Jel[:3,i]=spy.mxv(Tbod2ecl,Jcl[:3,i])
+            Jel[3:,i]=spy.mxv(Tbod2ecl,Jcl[3:,i])
+        return Jcl,Jel
+
 class GrtRay(object):
     """
     A ray in a GRT analysis
@@ -485,4 +750,132 @@ class GrtRay(object):
         #Pack
         raydf=pd.DataFrame([np.concatenate(([et],Rimp,ximp,xhel,elements,celements))],columns=columns)
         return raydf
+
+class GrtProb(object):
+    """
+    Class used to compute the impact probability
+    """
+    
+    def __init__(self,t,body,population,verbose=False):
+
+        #Primary
+        self.body=body
+        self.tdb=t       
+        self.population=population
+        
+        #Behavior
+        self.verbose=verbose
+        
+        #Secondary
+        self.location=None
+        
+    def setLocation(self,lon,lat,alt):
+        self.location=Location(self.body,lon,lat,alt)
+    
+    def calcPdir(self,Rdir):
+        """
+        Compute the resulting impact probability at a given site and 
+        time and with objects coming from a given population.
+
+        Parameters:
+
+            Rdir: impact vector (azimuth, elevation and speed), numpy array (3), (rad, rad, m/s)
+
+        Return:
+
+            pimp: Impact probability, p(R_i) = p(E_h) |det JER|.
+        """
+        self.Rdir=Rdir
+        A,h,v=Rdir
+        ray=GrtRay(self.location,A,h,v)
+        ray.updateRay(self.tdb)
+        try:
+            ray.propagateRay(self.tdb)
+            ray.terminal.elements[3:]=np.mod(ray.terminal.elements[3:],2*np.pi)
+            self.elements=Util.transformElements(ray.terminal.elements,[1/Const.au,Angle.Rad])
+            
+            if self.verbose:
+                print(f"Impact conditions: np.array([[{A}],[{h}],[{v}]])")
+                print(f"Terminal elements:",
+                      Util.transformElements(ray.terminal.elements,[1/Const.au,Angle.Rad]))
+                try:
+                    ray.terminal.calcUelements([Const.aphelion,1,np.pi,2*np.pi,2*np.pi,2*np.pi])
+                    locelements=ray.terminal.uelements
+                    print("Unbound terminal elements:",locelements)
+                except:
+                    print("Hyperbolic orbit")
+
+            #Check if orbit is bound
+            if ray.terminal.elements[1]<1:
+                #J = |dEhel/dRimp| = |dchel/dRimp| x |dehel/dchel| x |dEhel/dehel| 
+                detJ=ray.calcJacobianDeterminant()*                     (1-ray.terminal.elements[1])*                     Jacobians.calcDetMapJacobian(ray.terminal.elements,
+                                                  [Const.aphelion,1,np.pi,2*np.pi,2*np.pi,2*np.pi])[0]
+                ray.terminal.calcUelements(maxvalues=[Const.aphelion,1,np.pi,2*np.pi,2*np.pi,2*np.pi])
+                x=ray.terminal.uelements[:5]
+                ph=self.population.pdf(x)
+            #If orbit is not bound probability is zero
+            else:
+                ph=0
+                detJ=0
+
+        except AssertionError as e:
+            if self.verbose:
+                print("Error in ray:",e)
+            self.elements=-1*np.ones(6)
+            detJ=0
+            ph=0
+        del ray
+        self.ph=ph
+        self.detJ=detJ
+        return ph*np.abs(detJ)
+    
+    def calcPsky(self,Rsky):
+        N=Rsky.shape[1]
+        p=np.zeros(N)
+        self.phs=np.zeros(N)
+        self.detJs=np.zeros(N)
+        self.selements=np.zeros((N,6))
+        self.Rsky=Rsky.transpose()
+        for i in range(N):
+            p[i]=self.calcPdir(Rsky[:,i])
+            self.phs[i]=self.ph
+            self.detJs[i]=self.detJ
+            self.selements[i,:]=self.elements
+        return p
+    
+    def calcPimp(self,Rimp):
+        """
+        Compute the resulting impact probability for a given impact vector, 
+        time and with objects coming from a given population.
+
+        Parameters:
+
+            Rimp: impact matrix (longitude, latitude, height, azimuth, elevation, speed), 
+                  ie. rows are properties and columns are different values of properties.
+                  numpy array (6xN), (rad, rad, m, rad, rad, m/s) x N
+
+        Return:
+
+            p: Impact probability p(R_i) = p(E_h) |det JER|, numpy array (N)
+        """
+        N=Rimp.shape[1]
+        p=np.zeros(N)
+        self.phs=np.zeros(N)
+        self.detJs=np.zeros(N)
+        self.selements=np.zeros((N,6))
+        self.Rimp=Rimp.transpose()
+        for i in range(N):
+            lon,lat,alt=Rimp[:3,i]
+            Rdir=Rimp[3:,i]
+            if self.verbose:
+                print(f"Location: lon = {lon*Angle.Rad}, lat = {lat*Angle.Rad}, alt = {alt/Const.km}")
+                print(f"Direction: A = {Rdir[0]*Angle.Rad}, h = {Rdir[1]*Angle.Rad}, v = {Rdir[2]/Const.km}")
+            loc=Location(self.body,lon,lat,alt)
+            self.location=loc
+            p[i]=self.calcPdir(Rdir)
+            self.phs[i]=self.ph
+            self.detJs[i]=self.detJ
+            self.selements[i,:]=self.elements
+            del loc
+        return p
 

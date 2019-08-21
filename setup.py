@@ -60,7 +60,7 @@ setuptools.setup(
     #DEPENDENCIES
     #######################################################################
     install_requires=[
-        'scipy','spiceypy','ipython','matplotlib',
+        'scipy','spiceypy','ipython','matplotlib','tqdm','quadpy'
         ],
 
     #######################################################################

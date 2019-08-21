@@ -262,269 +262,6 @@ class Util(object):
         return delta
 
 #################################################################################
-#CLASS JACOBIANS
-#################################################################################
-class Jacobians(object):
-    """
-    This abstract class contains useful methods for computing Jacobians.
-    
-    Attributes:
-        None.
-        
-    Methods:
-        computeJacobian: numerically compute jacobian.
-    
-    """
-    def computeNumericalJacobian(jfun,x,dx,**args):
-        """
-        Computes numerically the Jacobian matrix of a multivariate function.
-        
-        Parameters:
-            jfun: multivariate function with the prototype "def jfun(x,**args)", function
-            x: indepedent variables, numpy array (N).
-            dx: step size of independent variables, numpy array (N).
-            **args: argument of the function
-            
-        Return:
-            y: dependent variables, y=jfun(x,**args)
-            Jyx: Jacobian matrix:
-            
-              Jif= [dy_1/dx_1,dy_1/dx_2,...,dy_1/dx_N,
-                    dy_2/dx_1,dy_2/dx_2,...,dy_2/dx_N,
-                                 . . . 
-                    dy_N/dx_1,dy_N/dx_2,...,dy_N/dx_N,]
-        """
-        N=len(x)
-        J=np.zeros((N,N))
-        y=jfun(x,**args)
-        for i in range(N):
-            for j in range(N):
-                pre=[x[k] for k in range(j)]
-                pos=[x[k] for k in range(j+1,N)]
-                yi=lambda t:jfun(pre+[t]+pos,**args)[i]
-                dyidxj=(yi(x[j]+dx[j])-yi(x[j]-dx[j]))/(2*dx[j])
-                J[i,j]=dyidxj
-        return y,J
-
-    def calcKeplerianJacobians(mu,celements,state):
-        """
-        Compute the Jacobian Matrix of the transformation from classical 
-        orbital elements (a,e,i,w,W,M) to cartesian state vector (x,y,z,x',y',z').
-
-        Return:
-
-            Jc2k = [dx/da,dx/de,dx/di,dx/dw,dx/dW,dx/dM,
-                    dy/da,dy/de,dy/di,dy/dw,dy/dW,dy/dM,
-                    dz/da,dz/de,dz/di,dz/dw,dz/dW,dz/dM,
-                    dx'/da,dx'/de,dx'/di,dx'/dw,dx'/dW,dx'/dM,
-                    dy'/da,dy'/de',dy'/di,dy'/dw,dy'/dW,dy'/dM,
-                    dz'/da,dz'/de,dz'/di',dz'/dw,dz'/dW,dz'/dM],
-
-                    Numpy array 6x6, units compatible with mu and a.
-        """
-        a,e,i,W,w,M=celements
-        q=a*(1-e)
-
-        #Orbit signature
-        if e<1:
-            s=+1
-        elif e>1:
-            s=-1
-        else:
-            s=0
-        
-        #Trigonometric function
-        cosi,sini=Angle.calcTrig(i)
-        cosw,sinw=Angle.calcTrig(w)
-        cosW,sinW=Angle.calcTrig(W)
-
-        #Components of the rotation matrix
-        A=(cosW*cosw-cosi*sinW*sinw);B=(-cosW*sinw-cosw*cosi*sinW)
-        C=(cosw*sinW+sinw*cosi*cosW);D=(-sinw*sinW+cosw*cosi*cosW)
-        F=sinw*sini;G=cosw*sini
-
-        #Primary auxiliar variables
-        ab=np.abs(a)
-        n=np.sqrt(mu/ab**3)
-        nu=n*a**2
-        eps=np.sqrt(s*(1-e**2))
-
-        #Get cartesian coordinates
-        x,y,z,vx,vy,vz=state
-        r=(x**2+y**2+z**2)**0.5
-        nur=nu/r
-        
-        #Eccentric anomaly as obtained from indirect information
-        #From the radial equation: r = a (1-e cos E)
-        cosE=(1/e)*(1-r/a)
-
-        #From the general equation for y
-        #NOTE: This is the safest way to obtain sinE without the danger of singularities
-        sinE=(y-a*(cosE-e)*C)/(ab*eps*D)
-
-        #dX/da
-        Ja=np.array([x/a,y/a,z/a,-vx/(2*a),-vy/(2*a),-vz/(2*a)])
-
-        #dX/de
-        dcosEde=-s*a*sinE**2/r
-        dsinEde=a*cosE*sinE/r
-        dnurde=(nu*a/r**2)*(cosE-(ab/r)*e*sinE**2)
-        depsde=-s*e/eps
-
-        drAde=a*(dcosEde-1)
-        drBde=ab*(depsde*sinE+eps*dsinEde)
-
-        dvAde=-(dnurde*sinE+nur*dsinEde)
-        dvBde=(dnurde*eps*cosE+nur*depsde*cosE+nur*eps*dcosEde)
-
-        Je=np.array([
-            drAde*A+drBde*B,
-            drAde*C+drBde*D,
-            drAde*F+drBde*G,
-            dvAde*A+dvBde*B,
-            dvAde*C+dvBde*D,
-            dvAde*F+dvBde*G,
-        ])
-
-        #dX/di
-        Ji=np.array([z*sinW,-z*cosW,-x*sinW+y*cosW,vz*sinW,-vz*cosW,-vx*sinW+vy*cosW])
-
-        #dX/dw
-        Jw=np.array([-y*cosi-z*sini*cosW,x*cosi-z*sini*sinW,sini*(x*cosW+y*sinW),            -vy*cosi-vz*sini*cosW,vx*cosi-vz*sini*sinW,sini*(vx*cosW+vy*sinW)])
-
-        #dX/dW
-        JW=np.array([-y,x,0,-vy,vx,0])
-
-        #dX/dM
-        JM=np.concatenate(((ab**3/mu)**0.5*np.array([vx,vy,vz]),
-                           (mu*ab**3)**0.5*np.array([-x/r**3,-y/r**3,-z/r**3])))
-
-        #Jacobian
-        Jck=np.array([Ja,Je,Ji,JW,Jw,JM]).transpose()
-
-        return Jck
-
-    def calcDetMapJacobian(elements,scales):
-        """
-        Parameters:
-            epsilon: bound elements, numpy array (N)
-            scales: scales for the bound elements ()
-
-        Return:
-
-            Jif= [dE_1/de_1,        0,        0,...,        0,
-                          0,dE_2/de_2,        0,...,        0,
-                          0,        0,dE_2/de_2,...,        0,
-                                 . . . 
-                          0,        0,        0,...,dE_N/de_N]
-
-            where dE/de = (1/s) /[x(1-x)] and x = e/s.
-        """
-        JEe=np.identity(6)
-        JeE=np.identity(6)
-
-        detJEe=1
-        detJeE=1
-        for i,eps in enumerate(elements):
-            x=eps/scales[i]
-            detJEe*=(1/scales[i])/(x*(1-x))
-            
-        detJeE=1/detJEe
-        return detJEe,detJeE
-    
-    def calcImpactJacobian(body,Rimp,state):
-        """
-        Compute the Jacobian Matrix of the transformation from local impact conditions 
-        (lon,lat,alt,A,h,v) to cartesian state vector (x,y,z,x',y',z') (in the body reference frame).
-
-        Parameters:
-            Rimp: Impact vector
-                lon: Geographic longitude (0,2pi), float, radians
-                lat: Geographic latitude (0,2pi), float, radians
-                alt: Altitude over the ellipsoid (0,inf), float, km
-                A: Azimuth (0,2pi), float, radians
-                h: Elevation (-pi/2,pi/2), float, radians
-                v: Impact speed (-inf,inf), float, km/s (negative if it is impacting)
-            state: State vector (x,y,z,x',y',z'), numpy array (6)
-
-        Return:
-
-            Jcl = [dx/dlon,dx/dlat,dx/dalt,dx/dA,dx/dh,dx/dv,
-                   dy/dlon,dy/dlat,dy/dalt,dy/dA,dy/dh,dy/dv,
-                   dz/dlon,dz/dlat,dz/dalt,dz/dA,dz/dh,dz/dv,
-                   dx'/dlon,dx'/dlat,dx'/dalt,dx'/dA,dx'/dh,dx'/dv,
-                   dy'/dlon,dy'/dlat,dy'/dalt,dy'/dA,dy'/dh,dy'/dv,
-                   dz'/dlon,dz'/dlat,dz'/dalt,dz'/dA,dz'/dh,dz'/dv],
-
-                Numpy 6x6 array.
-        """
-        #Local to rotating
-        lon,lat,alt,A,h,vimp=Rimp
-        x,y,z,vx,vy,vz=state
-        
-        coslon,sinlon=Angle.calcTrig(lon)
-        coslat,sinlat=Angle.calcTrig(lat)
-        cosA,sinA=Angle.calcTrig(A)
-        cosh,sinh=Angle.calcTrig(h)
-        
-        P=body.Prot
-        a=body.Ra
-        b=body.Rc
-        Tbod2ecl=body.Tbod2ecl
-        
-        #Auxiliar
-        fr=2*np.pi*np.sqrt(x**2+y**2)/(P*vimp)
-        N=a**2/np.sqrt(a**2*coslat**2+b**2*sinlat**2)
-        n2=(2*np.pi/P)**2
-
-        #dX/dlon:
-        Jlon=np.array([-y,x,0,-vy,vx,0])
-
-        #dX/dlat:
-        dxdlat=(a**2-b**2)*coslat*sinlat*N**3/a**4*coslat*coslon-(N+alt)*sinlat*coslon
-        dydlat=(a**2-b**2)*coslat*sinlat*N**3/a**4*coslat*sinlon-(N+alt)*sinlat*sinlon
-        Jlat=np.array([
-            dxdlat,
-            dydlat,
-            b**2*(a**2-b**2)*coslat*sinlat*N**3/a**6*sinlat+(b**2*N/a**2+alt)*coslat,
-            -vimp*cosh*cosA*coslat*coslon-n2*sinlon/(fr*vimp)*(x*dxdlat+y*dydlat)-vimp*sinh*sinlat*coslon,
-            -vimp*cosh*cosA*coslat*sinlon+n2*coslon/(fr*vimp)*(x*dxdlat+y*dydlat)-vimp*sinh*sinlat*sinlon,
-            vimp*(-cosh*cosA*sinlat+sinh*coslat)
-        ])
-
-        #dX/dalt:
-        Jalt=np.array([
-            coslat*coslon,coslat*sinlon,sinlat,
-            -n2*sinlon/(fr*vimp)*(x*coslat*coslon+y*coslat*sinlon),
-            +n2*coslon/(fr*vimp)*(x*coslat*coslon+y*coslat*sinlon),
-            0
-        ])
-
-        #dX/dA:
-        JA=np.array([0,0,0,
-            vimp*(cosh*sinA*sinlat*coslon-cosh*cosA*sinlon),
-            vimp*(cosh*sinA*sinlat*sinlon+cosh*cosA*coslon),
-            -vimp*cosh*sinA*coslat,
-           ])
-
-        #dX/dh:
-        Jh=np.array([0,0,0,
-            vimp*(sinh*cosA*sinlat*coslon+sinh*sinA*sinlon+cosh*coslat*coslon),
-            vimp*(sinh*cosA*sinlat*sinlon-sinh*sinA*coslon+cosh*coslat*sinlon),
-            vimp*(-sinh*cosA*coslat+cosh*sinlat),
-            ])
-
-        #dX/dvimp:
-        Jv=np.array([0,0,0,vx/vimp+sinlon*fr,vy/vimp-coslon*fr,vz/vimp])
-
-        Jcl=np.array([Jlon,Jlat,Jalt,JA,Jh,Jv]).transpose()
-        Jel=np.zeros_like(Jcl)
-        for i in range(6):
-            Jel[:3,i]=spy.mxv(Tbod2ecl,Jcl[:3,i])
-            Jel[3:,i]=spy.mxv(Tbod2ecl,Jcl[3:,i])
-        return Jcl,Jel
-
-#################################################################################
 #CLASS ANGLE
 #################################################################################
 class Angle(object):
@@ -605,6 +342,7 @@ class Const(object):
     """
     #Astronomical unit
     au=1.4959787070000000e11 #km, value assumed in DE430
+    aphelion=1.0167*au
     
     #Gravitational Constant
     G=6.67430e-11 #m^3/(kg s^2), Wikipedia
@@ -619,4 +357,254 @@ class Const(object):
     
     #Common units of length
     km=1000.0 # m
+
+from quadpy import ncube as quad
+class MultiCube(object):
+    """
+    Multidimensional cube integration schemes.  Inspired on: https://pypi.org/project/quadpy/
+
+    Initializacion attributes:
+    
+        multifunc: multidimensional integration routine, function with signature:
+                    
+                           func(X,**kwargs)
+                           
+                   where X is a matrix (NxM) with N the number of variables and M the number 
+                   of values where the variables will be evaluated.
+                   
+        variables: list with name of variables, list of strings (N)
+        
+    Optional initialization attributes:
+        
+        nscheme: name of the integration scheme (see MultiCube._schema).
+                   
+    Examples: 
+    
+        def func(X,factor=1):
+            r,q,f=X
+            p=factor*1/np.sqrt((2*np.pi)**3)*np.exp(-r**2/2)*r**2*np.cos(q)
+            return p
+            
+        nint=MultiCube(func,["r","q","f"],"stroud_cn_5_5")
+        i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+        
+        nint.setScheme("dobrodeev_1978")
+        i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))        
+    """
+    
+    _schema = [
+    "dobrodeev_1970",
+    "dobrodeev_1978",
+    "ewing",
+    "hammer_stroud_1n",
+    "hammer_stroud_2n",
+    "mustard_lyness_blatt",
+    "phillips",
+    "stroud_1957_2",
+    "stroud_1957_3",
+    "stroud_1966_a",
+    "stroud_1966_b",
+    "stroud_1966_c",
+    "stroud_1966_d",
+    "stroud_1968",
+    "stroud_cn_1_1",
+    "stroud_cn_1_2",
+    "stroud_cn_2_1",
+    "stroud_cn_2_2",
+    "stroud_cn_3_1",
+    "stroud_cn_3_2",
+    "stroud_cn_3_3",
+    "stroud_cn_3_4",
+    "stroud_cn_3_5",
+    "stroud_cn_3_6",
+    "stroud_cn_5_2",
+    "stroud_cn_5_3",
+    "stroud_cn_5_4",
+    "stroud_cn_5_5",
+    "stroud_cn_5_6",
+    "stroud_cn_5_7",
+    "stroud_cn_5_8",
+    "stroud_cn_5_9",
+    "stroud_cn_7_1",
+    "thacher",
+    "tyler"]
+    
+    def __init__(self,multifunc,variables,nscheme="dobrodeev_1978"):
+        self.multifunc=multifunc
+        self.variables={var:i for i,var in enumerate(variables)}
+        self.dim=len(variables)
+        self.nscheme=nscheme
+        self.setScheme(nscheme)
+        
+    def setScheme(self,nscheme):
+        if nscheme not in self._schema:
+            raise AssertionError(f"Scheme not recognized.")
+        self.nscheme=nscheme
+        self.scheme=quad.__dict__[nscheme](self.dim)
+
+    def integrate(self,variables,args=()):
+        """
+        Compute the integral in a given subdomain of the function variables.
+        
+        Parameters:
+        
+            variables: dictionary with variable values or ranges, dictionary.
+        
+        Optional parametes:
+        
+            args: arguments for the function.
+            
+        Example:
+        
+            def func(X,factor=1):
+                r,q,f=X
+                p=factor*1/np.sqrt((2*np.pi)**3)*np.exp(-r**2/2)*r**2*np.cos(q)
+                return p
+            
+            nint=MultiCube(func,["r","q","f"],"stroud_cn_5_5")
+            i=nint.integrate({"r":[0.0,1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+
+            i=nint.integrate({"r":[1.0],"q":[-np.pi/2,np.pi/2],"f":[0.0,2*np.pi]},args=(1.0,))
+
+            i=nint.integrate({"r":[1.0],"q":[np.pi/3],"f":[0.0,2*np.pi]},args=(1.0,))
+        """
+        iconst=[]
+        values=[]
+        ivars=[]
+        intervals=()
+        svars=list(variables.keys())
+        list.sort(svars,key=lambda s:self.variables[s])
+        for v in svars:
+            val=variables[v]
+            if len(val)==1:
+                iconst+=[self.variables[v]]
+                values+=val
+            else:
+                ivars+=[self.variables[v]]
+                intervals+=(val,)
+        sdim=len(ivars)
+        scheme=quad.__dict__[self.nscheme](sdim)
+        def f(x):
+            M=x.shape[1]
+            self.M=M
+            X=np.zeros((self.dim,M))
+            X[ivars,:]=x
+            X[iconst,:]=np.array(list(values)*M).reshape(M,len(iconst)).transpose()
+            p=self.multifunc(X,*args)
+            return p
+        i=scheme.integrate(f,quad.ncube_points(*intervals))
+        return i
+
+from scipy import integrate
+from functools import partial
+
+class _NQuad(object):
+    
+    def __init__(self,func,ranges,integrator=integrate.fixed_quad,opts=None):
+        self.abserr = 0
+        self.func = func
+        self.ranges = ranges
+        self.maxdepth = len(ranges)
+        if opts is None:
+            self.opts=[dict()]*self.maxdepth
+        else:
+            self.opts = opts
+        self.integrator=integrator
+
+    def integrate(self,*args,**kwargs):
+        depth = kwargs.pop('depth', 0)
+        
+        ind = -(depth + 1)
+        low, high = self.ranges[ind]
+        opt = self.opts[ind]
+
+        if depth + 1 == self.maxdepth:
+            f = self.func
+        else:
+            f = partial(self.integrate,depth=depth+1)
+            
+        quad_r = self.integrator(f,low,high,args=args,**opt)
+
+        try:
+            value = quad_r[0]
+            abserr = quad_r[1]
+        except:
+            value = quad_r
+            abserr = None
+        
+        if abserr is None:
+            self.abserr = None
+        else:
+            self.abserr = max(self.abserr, abserr)
+                    
+        if depth>0:
+            return value
+        else:
+            return value,self.abserr
+            
+class MultiQuad(object):
+    
+    _integrators=[
+        "fixed_quad",
+        "quad",
+        "romberg"
+    ]
+
+    def __init__(self,multifunc,variables,integrator="fixed_quad",opt=dict()):
+        self.multifunc=multifunc
+        self.variables={var:i for i,var in enumerate(variables)}
+        self.dim=len(variables)
+        self.opt=opt
+        self.setIntegrator(integrator)
+        self.fun_calls=0
+        
+    def setIntegrator(self,nintegrator):
+        self.nintegrator=nintegrator
+        if self.nintegrator in self._integrators:
+            self.integrator=integrate.__dict__[self.nintegrator]
+        else:
+            raise AssertionError(f"Integrator {nintegrator} not recognized")
+
+    def integrate(self,variables,args=()):
+        
+        iconst=[]
+        values=[]
+        ivars=[]
+        intervals=[]
+        svars=list(variables.keys())
+        list.sort(svars,key=lambda s:self.variables[s])
+        for v in svars:
+            val=variables[v]
+            if len(val)==1:
+                iconst+=[self.variables[v]]
+                values+=list(val)
+            else:
+                ivars+=[self.variables[v]]
+                intervals+=[val]
+        sdim=len(ivars)
+        opts=[self.opt]*sdim
+
+        if self.nintegrator in ["fixed_quad"]:
+            def f(*x):
+                M=len(x[0])
+                self.M=M
+                self.fun_calls+=M
+                X=np.zeros((self.dim,M))
+                X[ivars,:]=np.vstack(x)
+                X[iconst,:]=np.array(list(values)*M).reshape(M,len(iconst)).transpose()
+                p=self.multifunc(X,*args)
+                return p
+        else:
+            def f(*x):
+                self.M=1
+                self.fun_calls+=1
+                X=np.zeros((self.dim,1))
+                X[ivars,:]=np.array([x]).transpose()
+                X[iconst,:]=np.array(list(values)*self.M).reshape(self.M,len(iconst)).transpose()
+                p=self.multifunc(X,*args)
+                return p
+            
+        pint=_NQuad(f,intervals,integrator=self.integrator,opts=opts)
+        i=pint.integrate()
+        return i
 

@@ -41,16 +41,16 @@ class Test(unittest.TestCase):
         ax=fig.gca()
         fig.clf()
         ax=fig.gca()
-        m=Map("surface",ax,projection="robin")
-        m.setDecoration()
+        m=Map("surface",projection="robin")
+        m.drawMap(ax)
         fig.savefig(f"/tmp/surface.png")
         
     def test_map_sky(self):
         fig=plt.figure(figsize=(6,6),constrained_layout=True)
         ax=fig.gca()
-        m=Map("sky",ax)
+        m=Map("sky")
         m.drawmapboundary.update(dict(fill_color=None))
-        m.setDecoration()
+        m.drawMap(ax)
         fig.savefig(f"/tmp/sky.png")
         
     def test_plot_grid(self):

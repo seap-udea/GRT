@@ -243,6 +243,23 @@ class Test(unittest.TestCase):
                                     rtol=1e-5).tolist(),
                           [True]*36)
 
+    def test_numerical_jacobian(self):
+        def polar(X):
+            r,q=X
+            x=r*np.cos(q)
+            y=r*np.sin(q)
+            return np.array([x,y])
+
+        r=2.0
+        q=np.pi/3
+        X=[2.0,np.pi/3]
+        dX=[1e-3]*2
+        y,Jyx=Jacobians.computeNumericalJacobian(polar,X,dX)
+        self.assertEqual(np.isclose(Jyx.flatten(),
+                                    [np.cos(q),-r*np.sin(q),np.sin(q),r*np.cos(q)],
+                                    rtol=1e-5).tolist(),
+                         [True]*4)
+        
     def test_map_jacobian(self):
         mu=1
         q=0.78
@@ -253,11 +270,12 @@ class Test(unittest.TestCase):
         M=20.0
         self.orbit.setElements([q,e,i*Angle.Deg,W*Angle.Deg,w*Angle.Deg,M*Angle.Deg],0.0)
         self.orbit.calcUelements()
-        JEe,JeE=Jacobians.calcMapJacobian(self.orbit.elements,[1,1,np.pi,2*np.pi,2*np.pi,2*np.pi])
-        self.assertEqual(np.isclose(np.diag(JEe),
-                                    [5.82750583,4.16666667,1.69765273,1.14591559,2.08348289,3.03330597],
+        detJEe,detJeE=Jacobians.calcDetMapJacobian(self.orbit.elements,[1,1,np.pi,2*np.pi,2*np.pi,2*np.pi])
+        self.assertEqual(np.isclose([detJEe],
+                                    [np.array([5.82750583,4.16666667,1.69765273,
+                                              1.14591559,2.08348289,3.03330597]).prod()],
                                     rtol=1e-5).tolist(),
-                          [True]*6)
+                          [True]*1)
         
     def test_state_chely(self):
         self.ray_chely.updateRay(self.tdb_chely)

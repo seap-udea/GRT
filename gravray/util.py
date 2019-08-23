@@ -14,6 +14,7 @@
 # # GravRay Util Classes, Functions and Data
 
 from gravray import *
+from itertools import compress
 
 get_ipython().run_cell_magic('javascript', '', 'IPython.notebook.kernel.execute(\'FILE="\' + IPython.notebook.notebook_name + \'"\')')
 
@@ -260,6 +261,38 @@ class Util(object):
         delta=2*Util.asin(Util.sqrt(h))
 
         return delta
+
+    def calcDivisors(n):
+        """
+        Compute the divisors of an integer n (it works for n<1e16)
+        
+        Adapted from: https://stackoverflow.com/a/46637377
+        """
+        
+        #Returns  a list of primes < n for n > 2
+        N=int(n**0.5)+1
+        sieve = bytearray([True]) * (N//2)
+        for i in range(3,int(N**0.5)+1,2):
+            if sieve[i//2]:
+                sieve[i*i//2::i] = bytearray((N-i*i-1)//(2*i)+1)
+        primeslist=[2,*compress(range(3,N,2), sieve[1:])]
+        
+        #Returns a list of the prime factorization of n
+        pf = []
+        for p in primeslist:
+          if p*p > n : break
+          count = 0
+          while not n % p:
+            n //= p
+            count += 1
+          if count > 0: pf.append((p, count))
+        if n > 1: pf.append((n, 1))
+            
+        #Get the divisors
+        divs = [1]
+        for p, e in pf:
+            divs += [x*p**k for k in range(1,e+1) for x in divs]
+        return divs
 
 #################################################################################
 #CLASS ANGLE

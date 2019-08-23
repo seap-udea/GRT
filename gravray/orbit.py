@@ -858,6 +858,29 @@ class GrtProb(object):
 
             p: Impact probability p(R_i) = p(E_h) |det JER|, numpy array (N)
         """
+        lon,lat,alt=Rimp[:3]
+        Rdir=Rimp[3:]
+        loc=Location(self.body,lon,lat,alt)
+        self.location=loc
+        p=self.calcPdir(Rdir)
+        del loc
+        return p    
+    
+    def calcPimpVector(self,Rimp):
+        """
+        Compute the resulting impact probability for a given impact vector, 
+        time and with objects coming from a given population.
+
+        Parameters:
+
+            Rimp: impact matrix (longitude, latitude, height, azimuth, elevation, speed), 
+                  ie. rows are properties and columns are different values of properties.
+                  numpy array (6xN), (rad, rad, m, rad, rad, m/s) x N
+
+        Return:
+
+            p: Impact probability p(R_i) = p(E_h) |det JER|, numpy array (N)
+        """
         N=Rimp.shape[1]
         p=np.zeros(N)
         self.phs=np.zeros(N)

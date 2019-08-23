@@ -1,0 +1,19 @@
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+Check PEP style guide: https://www.python.org/dev/peps/pep-0008/
+
+Example package: https://scikit-monaco.readthedocs.io/en/latest/index.html
+
+Detailed example: https://docs.readthedocs.io/en/stable/index.html
+
+Sphinx and rst: 
+    https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html
+
+How to write documentation:
+    https://www.writethedocs.org/guide/writing/beginners-guide-to-docs/#id1
+

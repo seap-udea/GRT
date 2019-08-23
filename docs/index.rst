@@ -10,24 +10,24 @@
 Gravitational Raytracing, GRT
 =============================
 
-Welcome to the Gravitational Ray Tracing (`GRT`_) documentation.
+Welcome to the Gravitational Ray Tracing (GRT_) documentation.
 
-`GRT`_ is a novel numerical method used in celestial mechanics for
+GRT_ is a novel numerical method used in celestial mechanics for
 estimating the probability of meteoroid impacts on the surface of the
 Earth, the Moon and other bodies in the Solar System.  Its
 functionalities are not restricted to this application as it is
 explained in this documentation.
 
-`GRT`_ was conceived originally by Jorge I. Zuluaga and Mario
+GRT_ was conceived originally by Jorge I. Zuluaga and Mario
 A. Sucerquia of the University of Antioquia (Medellín, Colombia) and
 has been further developed by Jorge I. Zuluaga up-to its present
 version.
 
-If you use `GRT`_ for your scientific work please cite our seminal
+If you use GRT_ for your scientific work please cite our seminal
 manuscript :cite:`Zuluaga2018`.
    
 In this documentation you will find useful information about the
-`GRT`_ ``python`` package (and eventually the fastest version developed
+GRT_ ``python`` package (and eventually the fastest version developed
 for ``C++``) with detailed examples of their usage.
 
 .. ###########################################################################
